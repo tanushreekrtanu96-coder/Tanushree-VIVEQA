@@ -1,0 +1,332 @@
+# D Flip-Flop Glitch Demonstration and T Flip-Flop Using Verilog HDL – Notes
+
+## Aim
+
+To design and simulate:
+
+1. A D Flip-Flop demonstrating the effect of non-blocking assignments on complementary outputs.
+2. A positive edge-triggered T Flip-Flop.
+
+---
+
+# Part A: D Flip-Flop Glitch Demonstration
+
+## Module Declaration
+
+```verilog
+module dff_glitch(clk,rst,D,Q,Qb);
+```
+
+### Inputs
+
+| Signal | Description  |
+| ------ | ------------ |
+| `clk`  | Clock signal |
+| `rst`  | Reset signal |
+| `D`    | Data input   |
+
+### Outputs
+
+| Signal | Description       |
+| ------ | ----------------- |
+| `Q`    | Flip-Flop output  |
+| `Qb`   | Complement output |
+
+---
+
+## Code
+
+```verilog
+always @(posedge clk)
+begin
+    if(rst)
+    begin
+        Q <= 1'b0;
+        Qb <= ~Q;
+    end
+    else
+    begin
+        Q <= D;
+        Qb <= ~Q;
+    end
+end
+```
+
+---
+
+## Working Principle
+
+The flip-flop updates its outputs only at the **positive edge of the clock**.
+
+### Reset Condition
+
+When:
+
+```text
+rst = 1
+```
+
+the output becomes:
+
+```text
+Q = 0
+```
+
+---
+
+## Glitch Explanation
+
+Both statements use **non-blocking assignments (`<=`)**.
+
+```verilog
+Q <= D;
+Qb <= ~Q;
+```
+
+Since non-blocking assignments execute simultaneously, `Qb` is computed using the **previous value of Q**, not the updated value.
+
+### Example
+
+Before clock edge:
+
+```text
+Q = 0
+D = 1
+```
+
+After clock edge:
+
+```text
+Q  = 1
+Qb = ~0 = 1
+```
+
+Result:
+
+```text
+Q = 1
+Qb = 1
+```
+
+This is incorrect because `Qb` should be `0`.
+
+This temporary incorrect condition is called a **glitch**.
+
+---
+
+## Correct Implementation
+
+A better implementation is:
+
+```verilog
+always @(posedge clk)
+begin
+    if(rst)
+        Q <= 1'b0;
+    else
+        Q <= D;
+end
+
+assign Qb = ~Q;
+```
+
+This ensures:
+
+```text
+Qb = complement of present Q
+```
+
+at all times.
+
+---
+
+# D Flip-Flop Characteristic Equation
+
+```text
+Q(n+1) = D
+```
+
+---
+
+# D Flip-Flop Truth Table
+
+| D | Next Q |
+| - | ------ |
+| 0 | 0      |
+| 1 | 1      |
+
+---
+
+# Testbench Description
+
+The testbench performs the following operations:
+
+1. Generates a clock with a period of 10 ns.
+2. Applies reset.
+3. Changes the value of `D`.
+4. Observes `Q` and `Qb`.
+
+### Clock Generation
+
+```verilog
+always #5 clk = ~clk;
+```
+
+This creates:
+
+```text
+Clock Period = 10 ns
+```
+
+---
+
+# Part B: T Flip-Flop
+
+## Module Declaration
+
+```verilog
+module T_FF(clk,rst,T,Q,Qb);
+```
+
+---
+
+## Inputs and Outputs
+
+| Signal | Description       |
+| ------ | ----------------- |
+| `clk`  | Clock signal      |
+| `rst`  | Reset signal      |
+| `T`    | Toggle input      |
+| `Q`    | Output            |
+| `Qb`   | Complement output |
+
+---
+
+## Code
+
+```verilog
+always @(posedge clk)
+begin
+    if(rst)
+        Q <= 1'b0;
+    else if(T)
+        Q <= ~Q;
+    else
+        Q <= Q;
+end
+```
+
+```verilog
+assign Qb = ~Q;
+```
+
+---
+
+# Working Principle
+
+The T Flip-Flop changes state only on the positive edge of the clock.
+
+---
+
+## Reset Operation
+
+When:
+
+```text
+rst = 1
+```
+
+the output becomes:
+
+```text
+Q = 0
+```
+
+---
+
+## Toggle Operation
+
+### If:
+
+```text
+T = 0
+```
+
+Output remains unchanged.
+
+### If:
+
+```text
+T = 1
+```
+
+Output toggles.
+
+Example:
+
+```text
+Q = 0 → 1
+Q = 1 → 0
+```
+
+---
+
+# T Flip-Flop Truth Table
+
+| T | Present Q | Next Q |
+| - | --------- | ------ |
+| 0 | 0         | 0      |
+| 0 | 1         | 1      |
+| 1 | 0         | 1      |
+| 1 | 1         | 0      |
+
+---
+
+# Characteristic Equation
+
+```text
+Q(n+1) = T ⊕ Q(n)
+```
+
+---
+
+# State Diagram
+
+```text
+       T=1
+   +-----------+
+   |           |
+   v           |
+  Q=0 ------> Q=1
+   ^           |
+   |           v
+   +-----------+
+       T=1
+```
+
+For `T = 0`, the state remains unchanged.
+
+---
+
+# Applications
+
+### D Flip-Flop
+
+1. Data Storage
+2. Registers
+3. Shift Registers
+4. Synchronizers
+
+### T Flip-Flop
+
+1. Counters
+2. Frequency Division
+3. Ripple Counters
+4. Sequence Generators
+
+---
+
+# Conclusion
+
+1. The D Flip-Flop demonstrates how improper use of non-blocking assignments may cause temporary glitches in complementary outputs.
+2. The T Flip-Flop successfully performs toggle operations based on the input `T` and can be used as the basic building block of counters.
