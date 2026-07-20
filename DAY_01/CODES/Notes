@@ -1,0 +1,152 @@
+# Half Adder in Verilog – Notes
+
+## Aim
+
+To design and simulate a Half Adder using Verilog HDL.
+
+## What is a Half Adder?
+
+A Half Adder is a combinational circuit that adds two single-bit binary inputs and produces:
+
+* **Sum (S)** → Result of addition
+* **Carry (C)** → Carry generated from addition
+
+### Truth Table
+
+| A | B | Sum | Carry |
+| - | - | --- | ----- |
+| 0 | 0 | 0   | 0     |
+| 0 | 1 | 1   | 0     |
+| 1 | 0 | 1   | 0     |
+| 1 | 1 | 0   | 1     |
+
+### Boolean Equations
+
+* **Sum = A ⊕ B** (XOR operation)
+* **Carry = A · B** (AND operation)
+
+---
+
+# Verilog Design Module
+
+```verilog
+module half_adder(a,b,sum,carry);
+input a,b;
+output sum,carry;
+
+xor(sum,a,b);
+and(carry,a,b);
+
+endmodule
+```
+
+## Explanation
+
+* `module half_adder(a,b,sum,carry);`
+
+  * Defines the Half Adder module.
+
+* `input a,b;`
+
+  * Declares `a` and `b` as input signals.
+
+* `output sum,carry;`
+
+  * Declares `sum` and `carry` as output signals.
+
+* `xor(sum,a,b);`
+
+  * Implements the Sum equation:
+    `sum = a XOR b`
+
+* `and(carry,a,b);`
+
+  * Implements the Carry equation:
+    `carry = a AND b`
+
+* `endmodule`
+
+  * Ends the module definition.
+
+---
+
+# Testbench Module
+
+```verilog
+module half_adder_tb();
+reg a,b;
+wire sum,carry;
+
+half_adder dut(a,b,sum,carry);
+```
+
+## Explanation
+
+* `reg a,b;`
+
+  * Inputs are declared as `reg` because their values are changed inside the `initial` block.
+
+* `wire sum,carry;`
+
+  * Outputs are declared as `wire` because they are driven by the Half Adder module.
+
+* `half_adder dut(a,b,sum,carry);`
+
+  * Instantiates the Half Adder module.
+  * `dut` stands for **Device Under Test**.
+
+---
+
+# Applying Test Inputs
+
+```verilog
+initial begin
+a=1'b0;b=1'b0;
+#5 a=1'b0;b=1'b1;
+#5 a=1'b1;b=1'b0;
+#5 a=1'b1;b=1'b1;
+#5 $finish;
+end
+```
+
+## Explanation
+
+* `initial begin`
+
+  * Executes once at the start of simulation.
+
+* `1'b0`
+
+  * Represents a **1-bit binary value 0**.
+
+* `#5`
+
+  * Introduces a delay of **5 time units** before changing inputs.
+
+* `$finish`
+
+  * Stops the simulation.
+
+### Input Sequence
+
+| Time  | A | B |
+| ----- | - | - |
+| 0 ns  | 0 | 0 |
+| 5 ns  | 0 | 1 |
+| 10 ns | 1 | 0 |
+| 15 ns | 1 | 1 |
+
+---
+
+# Expected Output
+
+| Time  | A | B | Sum | Carry |
+| ----- | - | - | --- | ----- |
+| 0 ns  | 0 | 0 | 0   | 0     |
+| 5 ns  | 0 | 1 | 1   | 0     |
+| 10 ns | 1 | 0 | 1   | 0     |
+| 15 ns | 1 | 1 | 0   | 1     |
+
+## Conclusion
+
+The simulation verifies that the Half Adder correctly performs single-bit binary addition using XOR and AND gates.
