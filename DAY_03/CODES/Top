@@ -1,0 +1,75 @@
+module Top(
+    input clk,
+    input rst,
+    input A,
+    input B,
+    input [1:0] M,
+    output reg Q,
+    output reg Qb
+);
+
+wire Qd, Qbd;
+wire Qt, Qtb;
+wire Qjk, Qjkb;
+
+wire T_in, JK_in;
+
+// D Flip-Flop
+dff dff1 (
+    .clk(clk),
+    .rst(rst),
+    .D(A),
+    .Q(Qd),
+    .Qb(Qbd)
+);
+
+// T Flip-Flop using D FF
+assign T_in = A ^ Qt;
+
+dff tff1 (
+    .clk(clk),
+    .rst(rst),
+    .D(T_in),
+    .Q(Qt),
+    .Qb(Qtb)
+);
+
+// JK Flip-Flop using D FF
+assign JK_in = (A & Qjkb) | (B & Qjk);
+
+dff jkff1 (
+    .clk(clk),
+    .rst(rst),
+    .D(JK_in),
+    .Q(Qjk),
+    .Qb(Qjkb)
+);
+
+// Output selection
+always @(*) begin
+    case(M)
+
+        2'b00: begin
+            Q  = Qd;
+            Qb = Qbd;
+        end
+
+        2'b01: begin
+            Q  = Qt;
+            Qb = Qtb;
+        end
+
+        2'b10: begin
+            Q  = Qjk;
+            Qb = Qjkb;
+        end
+
+        default: begin
+            Q  = 1'b0;
+            Qb = 1'b1;
+        end
+
+    endcase
+end
+
+endmodule
