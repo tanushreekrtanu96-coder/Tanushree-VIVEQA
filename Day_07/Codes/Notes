@@ -1,0 +1,294 @@
+# 4-Bit Asynchronous Up Counter Using T Flip-Flops – Notes
+
+## Aim
+
+To design and simulate a **4-bit Asynchronous (Ripple) Up Counter** using T Flip-Flops in Verilog HDL.
+
+---
+
+# What is an Asynchronous Counter?
+
+An asynchronous counter (also called a **ripple counter**) is a sequential circuit in which:
+
+* Only the first flip-flop receives the external clock.
+* Each subsequent flip-flop is triggered by the output of the previous flip-flop.
+
+Because the clock signal propagates from one flip-flop to another, a small delay called **ripple delay** occurs.
+
+---
+
+# Module Declaration
+
+```verilog id="nq8iv9"
+module async_4bit_up_pos(clk,rst,count);
+```
+
+### Inputs
+
+| Signal | Description           |
+| ------ | --------------------- |
+| `clk`  | External clock signal |
+| `rst`  | Reset signal          |
+
+### Output
+
+| Signal       | Description          |
+| ------------ | -------------------- |
+| `count[3:0]` | 4-bit counter output |
+
+---
+
+# Internal Signals
+
+```verilog id="bbd37v"
+wire Qb0,Qb1,Qb2,Qb3;
+```
+
+These wires store the complement outputs of the T Flip-Flops and are used as clock inputs for the next stages.
+
+---
+
+# T Flip-Flop Instantiations
+
+## First Flip-Flop
+
+```verilog id="4f1dk1"
+T_FF tff0(clk,rst,1'b1,count[0],Qb0);
+```
+
+### Operation
+
+* Receives the external clock.
+* `T = 1`, therefore it toggles on every positive clock edge.
+
+Thus:
+
+```text id="gzwvhy"
+count[0] = fclk / 2
+```
+
+---
+
+## Second Flip-Flop
+
+```verilog id="1l73c5"
+T_FF tff1(Qb0,rst,1'b1,count[1],Qb1);
+```
+
+Triggered by `Qb0`.
+
+Frequency becomes:
+
+```text id="3x9ybv"
+count[1] = fclk / 4
+```
+
+---
+
+## Third Flip-Flop
+
+```verilog id="2ptu5h"
+T_FF tff2(Qb1,rst,1'b1,count[2],Qb2);
+```
+
+Triggered by `Qb1`.
+
+Frequency becomes:
+
+```text id="r75q2v"
+count[2] = fclk / 8
+```
+
+---
+
+## Fourth Flip-Flop
+
+```verilog id="r4m7is"
+T_FF tff3(Qb2,rst,1'b1,count[3],Qb3);
+```
+
+Triggered by `Qb2`.
+
+Frequency becomes:
+
+```text id="0w3b0o"
+count[3] = fclk / 16
+```
+
+---
+
+# Why `T = 1'b1`?
+
+```verilog id="qsm44c"
+1'b1
+```
+
+means the T input is permanently HIGH.
+
+Therefore, each T Flip-Flop toggles whenever a clock edge arrives.
+
+---
+
+# Counter Sequence
+
+The counter counts upward in binary.
+
+| Decimal | count[3:0] |
+| ------- | ---------- |
+| 0       | 0000       |
+| 1       | 0001       |
+| 2       | 0010       |
+| 3       | 0011       |
+| 4       | 0100       |
+| 5       | 0101       |
+| 6       | 0110       |
+| 7       | 0111       |
+| 8       | 1000       |
+| 9       | 1001       |
+| 10      | 1010       |
+| 11      | 1011       |
+| 12      | 1100       |
+| 13      | 1101       |
+| 14      | 1110       |
+| 15      | 1111       |
+| 16      | 0000       |
+
+After `1111`, the counter rolls over to `0000`.
+
+---
+
+# Block Diagram
+
+```text id="rwh5zv"
+         clk
+          |
+      +---------+
+      |  TFF0   | ---- count[0]
+      +---------+
+           |
+          Qb0
+           |
+      +---------+
+      |  TFF1   | ---- count[1]
+      +---------+
+           |
+          Qb1
+           |
+      +---------+
+      |  TFF2   | ---- count[2]
+      +---------+
+           |
+          Qb2
+           |
+      +---------+
+      |  TFF3   | ---- count[3]
+      +---------+
+```
+
+---
+
+# Testbench Explanation
+
+## Clock Generation
+
+```verilog id="bjlwmc"
+always #5 clk = ~clk;
+```
+
+Creates a clock with:
+
+```text id="bepm0q"
+Time Period = 10 ns
+Frequency = 100 MHz (for simulation)
+```
+
+---
+
+## Initialization
+
+```verilog id="vktcrh"
+clk = 1'b0;
+rst = 1'b0;
+```
+
+Initial values are assigned.
+
+---
+
+## Reset Operation
+
+```verilog id="jvq1n2"
+#12 rst = 1'b1;
+#12 rst = 1'b0;
+```
+
+Reset is asserted and then released.
+
+Counter starts counting after reset is removed.
+
+---
+
+## Simulation Stop
+
+```verilog id="evg8ny"
+#500 $finish;
+```
+
+Simulation ends after 500 ns.
+
+---
+
+# Timing Diagram (Expected)
+
+```text id="h3rjlwm"
+clk      : ─┐_┌─┐_┌─┐_┌─┐_
+count[0] : ──┐__┌──┐__┌──
+count[1] : ─────┐____┌────
+count[2] : ─────────┐_______
+count[3] : ─────────────────┐
+```
+
+Each stage divides the frequency by 2.
+
+---
+
+# Frequency Division
+
+| Output Bit | Frequency |
+| ---------- | --------- |
+| count[0]   | f/2       |
+| count[1]   | f/4       |
+| count[2]   | f/8       |
+| count[3]   | f/16      |
+
+---
+
+# Advantages
+
+1. Simple hardware implementation.
+2. Requires fewer logic gates.
+3. Useful for frequency division.
+
+---
+
+# Disadvantages
+
+1. Ripple delay occurs because flip-flops do not change simultaneously.
+2. Slower compared to synchronous counters.
+
+---
+
+# Applications
+
+1. Frequency Divider Circuits
+2. Digital Clocks
+3. Event Counters
+4. Timers
+5. Sequence Generators
+6. LED Binary Counters
+
+---
+
+# Conclusion
+
+The Verilog code successfully implements a **4-bit Asynchronous Up Counter** using T Flip-Flops. Each flip-flop toggles the next stage, producing a binary counting sequence from `0000` to `1111` and dividing the clock frequency at each stage.
