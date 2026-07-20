@@ -1,0 +1,282 @@
+# JK Flip-Flop Using Verilog HDL – Notes
+
+## Aim
+
+To design and simulate a JK Flip-Flop using Verilog HDL.
+
+---
+
+# What is a JK Flip-Flop?
+
+A JK Flip-Flop is a sequential circuit that stores one bit of data. It is an improved version of the SR Flip-Flop because it eliminates the invalid state.
+
+It has:
+
+* Two inputs: **J** and **K**
+* One clock input: **clk**
+* One reset input: **rst**
+* Two outputs: **Q** and **Q̅ (Qb)**
+
+---
+
+# Module Declaration
+
+```verilog id="h0w1z5"
+module JK_FF(clk,rst,J,K,Q,Qb);
+```
+
+### Inputs
+
+| Signal | Description  |
+| ------ | ------------ |
+| `clk`  | Clock signal |
+| `rst`  | Reset signal |
+| `J`    | Set input    |
+| `K`    | Reset input  |
+
+### Outputs
+
+| Signal | Description          |
+| ------ | -------------------- |
+| `Q`    | Present state output |
+| `Qb`   | Complement of Q      |
+
+---
+
+# Signal Declaration
+
+```verilog id="1gbvxg"
+output reg Q;
+output Qb;
+```
+
+### Explanation
+
+* `Q` is declared as **reg** because it is assigned inside an `always` block.
+* `Qb` is declared as **wire** (default) because it is continuously assigned using `assign`.
+
+---
+
+# Always Block
+
+```verilog id="klfr9k"
+always @(posedge clk)
+```
+
+### Explanation
+
+The JK Flip-Flop is a **positive edge-triggered sequential circuit**.
+
+The statements inside the block execute only when the clock changes from:
+
+```text id="d1njr2"
+0 → 1
+```
+
+---
+
+# Reset Operation
+
+```verilog id="j4n55f"
+if(rst)
+    Q <= 1'b0;
+```
+
+### Explanation
+
+Whenever `rst = 1`, the output is reset to:
+
+```text id="v1rm5i"
+Q = 0
+```
+
+This is a **synchronous reset** because it works only at the positive edge of the clock.
+
+---
+
+# JK Operation
+
+```verilog id="ml6l1r"
+case({J,K})
+```
+
+The inputs `J` and `K` are concatenated and checked using a case statement.
+
+---
+
+## Case 1: No Change
+
+```verilog id="tznkro"
+2'b00 : Q <= Q;
+```
+
+### Operation
+
+When:
+
+```text id="ye14s3"
+J = 0 , K = 0
+```
+
+The output retains its previous state.
+
+### Characteristic Equation
+
+```text id="ff4q5h"
+Q(n+1) = Q(n)
+```
+
+---
+
+## Case 2: Reset
+
+```verilog id="rj0jpo"
+2'b01 : Q <= 1'b0;
+```
+
+### Operation
+
+When:
+
+```text id="m6xw1z"
+J = 0 , K = 1
+```
+
+The output becomes:
+
+```text id="nn2v29"
+Q = 0
+```
+
+---
+
+## Case 3: Set
+
+```verilog id="iysf6d"
+2'b10 : Q <= 1'b1;
+```
+
+### Operation
+
+When:
+
+```text id="buj9gn"
+J = 1 , K = 0
+```
+
+The output becomes:
+
+```text id="0hrzrl"
+Q = 1
+```
+
+---
+
+## Case 4: Toggle
+
+```verilog id="6z4p9x"
+2'b11 : Q <= ~Q;
+```
+
+### Operation
+
+When:
+
+```text id="3kcbgo"
+J = 1 , K = 1
+```
+
+The output toggles.
+
+Example:
+
+```text id="7wv4ku"
+If Q = 0 → Next Q = 1
+If Q = 1 → Next Q = 0
+```
+
+---
+
+# Complement Output
+
+```verilog id="mib3fv"
+assign Qb = ~Q;
+```
+
+### Explanation
+
+`Qb` always stores the complement of `Q`.
+
+```text id="5az2qe"
+Qb = Q̅
+```
+
+---
+
+# Truth Table
+
+| J | K | Present Q | Next Q |
+| - | - | --------- | ------ |
+| 0 | 0 | 0         | 0      |
+| 0 | 0 | 1         | 1      |
+| 0 | 1 | X         | 0      |
+| 1 | 0 | X         | 1      |
+| 1 | 1 | 0         | 1      |
+| 1 | 1 | 1         | 0      |
+
+---
+
+# Characteristic Table
+
+| J | K | Q(n+1) |
+| - | - | ------ |
+| 0 | 0 | Q(n)   |
+| 0 | 1 | 0      |
+| 1 | 0 | 1      |
+| 1 | 1 | Q̅(n)  |
+
+---
+
+# Characteristic Equation
+
+```text id="m7tt8n"
+Q(n+1) = JQ̅ + K̅Q
+```
+
+---
+
+# State Diagram
+
+```text id="fnsn8l"
+          J=1,K=0
+      +----------------+
+      |                |
+      v                |
+     Q=0 ----------> Q=1
+      ^                |
+      |                v
+      +----------------+
+          J=1,K=1
+```
+
+* `00` → Hold
+* `01` → Reset
+* `10` → Set
+* `11` → Toggle
+
+---
+
+# Applications
+
+1. Counters
+2. Frequency Dividers
+3. Shift Registers
+4. Sequence Generators
+5. Finite State Machines
+6. Memory Elements
+
+---
+
+# Conclusion
+
+The Verilog code successfully implements a **positive edge-triggered synchronous JK Flip-Flop with reset**. Depending on the values of `J` and `K`, the flip-flop can hold, reset, set, or toggle its output.
