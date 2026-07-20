@@ -1,0 +1,66 @@
+`timescale 1ns/1ps
+
+module JK_FF_tb;
+
+reg clk;
+reg rst;
+reg J, K;
+
+wire Q, Qb;
+
+// DUT Instantiation
+JK_FF dut (
+    .clk(clk),
+    .rst(rst),
+    .J(J),
+    .K(K),
+    .Q(Q),
+    .Qb(Qb)
+);
+
+// Clock Generation (10 ns period)
+initial begin
+    clk = 1'b0;
+    forever #5 clk = ~clk;
+end
+
+// Stimulus
+initial begin
+
+    // Initialize inputs
+    rst = 1'b1;
+    J   = 1'b0;
+    K   = 1'b0;
+
+    // Apply Reset
+    #10 rst = 1'b0;
+
+    // 00 : No Change
+    #10 J = 0; K = 0;
+
+    // 01 : Reset
+    #10 J = 0; K = 1;
+
+    // 10 : Set
+    #10 J = 1; K = 0;
+
+    // 11 : Toggle
+    #10 J = 1; K = 1;
+
+    // Toggle again
+    #10 J = 1; K = 1;
+
+    // No Change
+    #10 J = 0; K = 0;
+
+    #20 $finish;
+
+end
+
+// Monitor values
+initial begin
+    $monitor("Time=%0t clk=%b rst=%b J=%b K=%b Q=%b Qb=%b",
+              $time, clk, rst, J, K, Q, Qb);
+end
+
+endmodule
