@@ -1,0 +1,272 @@
+# Parallel-In Serial-Out (PISO) Shift Register Using Verilog HDL – Notes
+
+## Aim
+
+To design and simulate a **4-bit Parallel-In Serial-Out (PISO) Shift Register** using Verilog HDL.
+
+---
+
+# What is a PISO Shift Register?
+
+A PISO (Parallel-In Serial-Out) Shift Register loads multiple bits simultaneously and transmits them one bit at a time serially.
+
+### Inputs
+
+* `clk` → Clock signal
+* `rst` → Reset signal
+* `data_in[3:0]` → 4-bit parallel input data
+* `load` → Loads parallel data into register
+* `shift` → Initiates serial shifting
+
+### Output
+
+* `data_out` → Serial output bit
+
+---
+
+# Module Declaration
+
+```verilog id="4mbs5h"
+module PISO(clk,rst,data_in,load,shift,data_out);
+```
+
+---
+
+# Input and Output Declaration
+
+```verilog id="j41f2l"
+input clk,rst;
+input [3:0] data_in;
+input load,shift;
+output reg data_out;
+```
+
+### Explanation
+
+| Signal         | Type   | Description              |
+| -------------- | ------ | ------------------------ |
+| `clk`          | Input  | Clock signal             |
+| `rst`          | Input  | Reset signal             |
+| `data_in[3:0]` | Input  | 4-bit parallel input     |
+| `load`         | Input  | Loads data into register |
+| `shift`        | Input  | Shift control signal     |
+| `data_out`     | Output | Serial output            |
+
+---
+
+# Internal Registers
+
+```verilog id="v6f17q"
+reg [3:0] data_reg;
+reg [1:0] cnt;
+reg shift_d;
+wire pos_shift;
+```
+
+### Purpose of Internal Signals
+
+| Signal      | Purpose                             |
+| ----------- | ----------------------------------- |
+| `data_reg`  | Stores the parallel input data      |
+| `cnt`       | Keeps track of current bit position |
+| `shift_d`   | Delayed version of shift signal     |
+| `pos_shift` | Detects positive edge of shift      |
+
+---
+
+# Main Sequential Block
+
+```verilog id="p3hm20"
+always @(posedge clk)
+```
+
+This block executes on every positive edge of the clock.
+
+---
+
+# Reset Operation
+
+```verilog id="7omd1j"
+if(rst)
+begin
+    data_out <= 1'b0;
+    cnt <= 2'b0;
+    data_reg <= 4'b0;
+end
+```
+
+### Operation
+
+When `rst = 1`:
+
+* Output becomes `0`
+* Counter resets to `0`
+* Register contents are cleared
+
+---
+
+# Loading Parallel Data
+
+```verilog id="db8xlq"
+if(load)
+    data_reg <= data_in;
+```
+
+### Operation
+
+When `load = 1`, all four input bits are loaded simultaneously into `data_reg`.
+
+Example:
+
+```text id="p4vdy0"
+data_in = 1011
+```
+
+After loading:
+
+```text id="l85q8h"
+data_reg = 1011
+```
+
+---
+
+# Serial Output Operation
+
+```verilog id="yjlwm0"
+else if(pos_shift)
+begin
+    data_out <= data_reg[cnt];
+    cnt <= cnt + 1;
+end
+```
+
+### Operation
+
+Whenever a positive edge of `shift` is detected:
+
+1. Current bit is sent to `data_out`.
+2. Counter increments to point to the next bit.
+
+---
+
+# Bit Transmission Example
+
+Suppose:
+
+```text id="fnpn3q"
+data_in = 4'b1011
+```
+
+Bit positions:
+
+```text id="zh6f40"
+data_reg[3] = 1
+data_reg[2] = 0
+data_reg[1] = 1
+data_reg[0] = 1
+```
+
+Output sequence:
+
+| Shift Pulse | Counter | Output |
+| ----------- | ------- | ------ |
+| 1           | 0       | 1      |
+| 2           | 1       | 1      |
+| 3           | 2       | 0      |
+| 4           | 3       | 1      |
+
+Serial output:
+
+```text id="wruyol"
+1 → 1 → 0 → 1
+```
+
+---
+
+# Edge Detection Circuit
+
+## Delaying Shift Signal
+
+```verilog id="1d9n8l"
+always @(posedge clk)
+begin
+    if(rst)
+        shift_d <= 1'b0;
+    else
+        shift_d <= shift;
+end
+```
+
+`shift_d` stores the previous value of `shift`.
+
+---
+
+## Positive Edge Detection
+
+```verilog id="qk8mlj"
+assign pos_shift = ~shift_d & shift;
+```
+
+### Logic
+
+```text id="5s7r0z"
+pos_shift = 1
+```
+
+only when:
+
+```text id="1j30k5"
+shift changes from 0 → 1
+```
+
+This prevents multiple shifts while `shift` remains high.
+
+---
+
+# Functional Block Diagram
+
+```text id="6g0lg3"
+        data_in[3:0]
+               |
+          +-----------+
+          | data_reg  |
+          +-----------+
+                 |
+            Counter(cnt)
+                 |
+             data_out
+```
+
+---
+
+# Timing Sequence
+
+1. Apply reset.
+2. Load parallel data.
+3. Generate shift pulses.
+4. Data appears serially at output.
+
+---
+
+# Applications
+
+1. Serial Communication
+2. Data Transmission Systems
+3. UART Interfaces
+4. SPI Communication
+5. Microprocessor Interfacing
+6. Data Serialization
+
+---
+
+# Advantages
+
+* Reduces number of transmission lines.
+* Simplifies serial communication.
+* Useful in long-distance data transfer.
+
+---
+
+# Conclusion
+
+The Verilog code successfully implements a **4-bit Parallel-In Serial-Out (PISO) Shift Register**. The input data is loaded in parallel and transmitted serially one bit at a time using shift pulses and a counter-based indexing mechanism.
