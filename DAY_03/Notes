@@ -1,0 +1,249 @@
+# Universal Flip-Flop Using D Flip-Flops – Notes
+
+## Aim
+
+To design and simulate a **Universal Flip-Flop** using D Flip-Flops in Verilog HDL.
+
+---
+
+# Objective
+
+The circuit uses three D Flip-Flops to realize:
+
+1. D Flip-Flop
+2. T Flip-Flop
+3. JK Flip-Flop
+
+A **2-bit select input `M`** is used to choose the desired flip-flop output.
+
+---
+
+# Module Declaration
+
+```verilog
+module Top(clk,rst,A,B,M,Q,Qb);
+```
+
+### Inputs
+
+| Signal   | Description                     |
+| -------- | ------------------------------- |
+| `clk`    | Clock signal                    |
+| `rst`    | Reset signal                    |
+| `A`      | Input signal (D, T, or J input) |
+| `B`      | K input for JK Flip-Flop        |
+| `M[1:0]` | Mode selection input            |
+
+### Outputs
+
+| Signal | Description                   |
+| ------ | ----------------------------- |
+| `Q`    | Selected Flip-Flop output     |
+| `Qb`   | Complement of selected output |
+
+---
+
+# Internal Signals
+
+```verilog
+wire Qd,Qbd;
+wire Qt,Qtb;
+wire Qjk,Qjkb;
+wire T_in,JK_in;
+```
+
+These wires store outputs of the individual flip-flops.
+
+| Signal     | Purpose               |
+| ---------- | --------------------- |
+| `Qd,Qbd`   | D Flip-Flop outputs   |
+| `Qt,Qtb`   | T Flip-Flop outputs   |
+| `Qjk,Qjkb` | JK Flip-Flop outputs  |
+| `T_in`     | Input to T Flip-Flop  |
+| `JK_in`    | Input to JK Flip-Flop |
+
+---
+
+# D Flip-Flop Implementation
+
+```verilog
+dff dff1(clk,rst,A,Qd,Qbd);
+```
+
+### Operation
+
+The input `A` is directly connected to the D input.
+
+### Characteristic Equation
+
+```text
+Q(n+1) = D
+```
+
+---
+
+# T Flip-Flop Implementation
+
+```verilog
+assign T_in = A ^ Qt;
+
+dff tff1(clk,rst,T_in,Qt,Qtb);
+```
+
+### Working
+
+The T Flip-Flop is implemented using a D Flip-Flop.
+
+### Characteristic Equation
+
+```text
+D = T ⊕ Q
+```
+
+where:
+
+* `T = A`
+* `Q = Present State`
+
+### Operation
+
+| A (T) | Next State |
+| ----- | ---------- |
+| 0     | No Change  |
+| 1     | Toggle     |
+
+---
+
+# JK Flip-Flop Implementation
+
+```verilog
+assign JK_in = (A & Qjkb) | (~B & Qjk);
+
+dff jkff1(clk,rst,JK_in,Qjk,Qjkb);
+```
+
+### Working
+
+The JK Flip-Flop is also realized using a D Flip-Flop.
+
+### Characteristic Equation
+
+```text
+D = JQ' + K'Q
+```
+
+where:
+
+* `J = A`
+* `K = B`
+
+### Operation
+
+| J | K | Next State |
+| - | - | ---------- |
+| 0 | 0 | No Change  |
+| 0 | 1 | Reset      |
+| 1 | 0 | Set        |
+| 1 | 1 | Toggle     |
+
+---
+
+# Mode Selection Logic
+
+```verilog
+always @(*)
+begin
+case(M)
+```
+
+The `case` statement selects which flip-flop output is sent to `Q` and `Qb`.
+
+---
+
+## Mode 00 – D Flip-Flop
+
+```verilog
+2'b00:
+begin
+Q = Qd;
+Qb = Qbd;
+end
+```
+
+Output corresponds to D Flip-Flop.
+
+---
+
+## Mode 01 – T Flip-Flop
+
+```verilog
+2'b01:
+begin
+Q = Qt;
+Qb = Qtb;
+end
+```
+
+Output corresponds to T Flip-Flop.
+
+---
+
+## Mode 10 – JK Flip-Flop
+
+```verilog
+2'b10:
+begin
+Q = Qjk;
+Qb = Qjkb;
+end
+```
+
+Output corresponds to JK Flip-Flop.
+
+---
+
+# Mode Selection Table
+
+| M1 M0 | Selected Flip-Flop |
+| ----- | ------------------ |
+| 00    | D Flip-Flop        |
+| 01    | T Flip-Flop        |
+| 10    | JK Flip-Flop       |
+| 11    | Not Used / Default |
+
+---
+
+# Block Diagram
+
+```text
+            A,B
+              |
+      -----------------
+      |       |       |
+     DFF     TFF     JKFF
+      |       |       |
+      -----------------
+               |
+            MUX (M)
+               |
+             Q,Qb
+```
+
+The `case` statement acts like a **4:1 Multiplexer**, selecting one flip-flop output.
+
+---
+
+# Applications
+
+* Sequential Circuit Design
+* Counters
+* Registers
+* Shift Registers
+* State Machines
+* Digital System Design
+
+---
+
+# Conclusion
+
+The Verilog code successfully implements a **Universal Flip-Flop** using D Flip-Flops. By changing the mode selection input `M`, the circuit can behave as a D, T, or JK Flip-Flop, reducing hardware complexity and increasing flexibility.
