@@ -1,0 +1,674 @@
+# Single Port RAM Using Verilog HDL – Notes
+
+## Aim
+
+To design and simulate a **Single Port RAM** using Verilog HDL.
+
+---
+
+# Objective
+
+To implement a memory module that uses a single port for both read and write operations.
+
+---
+
+# What is Single Port RAM?
+
+A Single Port RAM is a memory in which:
+
+* Only one address port is available.
+* Read and write operations cannot occur simultaneously.
+* At a given clock cycle, either a read operation or a write operation is performed.
+
+---
+
+# Module Declaration
+
+```verilog id="1rvnn2"
+module single_port_ram(
+    clk,
+    addr,
+    wr_en,
+    write_data,
+    read_data
+);
+```
+
+---
+
+# Inputs and Outputs
+
+### Inputs
+
+| Signal       | Width   | Description         |
+| ------------ | ------- | ------------------- |
+| `clk`        | 1 bit   | Clock signal        |
+| `addr`       | 32 bits | Memory address      |
+| `wr_en`      | 1 bit   | Write Enable signal |
+| `write_data` | 32 bits | Data to be written  |
+
+### Output
+
+| Signal      | Width   | Description           |
+| ----------- | ------- | --------------------- |
+| `read_data` | 32 bits | Data read from memory |
+
+---
+
+# Memory Declaration
+
+```verilog id="wjlwm5"
+reg [31:0] mem [0:63];
+```
+
+### Explanation
+
+This creates:
+
+* 64 memory locations
+* Each location stores 32 bits
+
+Hence:
+
+```text id="r17qwb"
+Memory Size = 64 × 32 bits
+            = 2048 bits
+            = 256 Bytes
+```
+
+---
+
+# Memory Organization
+
+| Address | Stored Data |
+| ------- | ----------- |
+| 0       | mem[0]      |
+| 1       | mem[1]      |
+| 2       | mem[2]      |
+| ...     | ...         |
+| 63      | mem[63]     |
+
+---
+
+# Sequential Block
+
+```verilog id="k2o5p1"
+always @(posedge clk)
+```
+
+The RAM operates on the positive edge of the clock.
+
+---
+
+# Write Operation
+
+```verilog id="w3ocoz"
+if(wr_en)
+    mem[addr] <= write_data;
+```
+
+### Operation
+
+When:
+
+```text id="4lq0kq"
+wr_en = 1
+```
+
+Data is written into memory.
+
+Example:
+
+```text id="1uln3m"
+addr = 5
+write_data = 32'd25
+```
+
+After the clock edge:
+
+```text id="koc3dy"
+mem[5] = 25
+```
+
+---
+
+# Read Operation
+
+```verilog id="z6ty2m"
+else
+    read_data <= mem[addr];
+```
+
+### Operation
+
+When:
+
+```text id="z3yykz"
+wr_en = 0
+```
+
+Data stored at the specified address is placed on `read_data`.
+
+Example:
+
+```text id="o6l1np"
+addr = 5
+```
+
+Output:
+
+```text id="uxvfh4"
+read_data = mem[5]
+```
+
+---
+
+# Functional Block Diagram
+
+```text id="d8lht1"
+                +----------------+
+addr ---------->|                |
+write_data ---->|      RAM       |----> read_data
+wr_en --------->|                |
+clk ----------->|                |
+                +----------------+
+```
+
+---
+
+# Testbench Explanation
+
+## Clock Generation
+
+```verilog id="ajm7el"
+always #5 clk = ~clk;
+```
+
+Clock period:
+
+```text id="rfll4w"
+10 ns
+```
+
+---
+
+# Initialization
+
+```verilog id="ufnhv7"
+clk = 0;
+wr_en = 0;
+addr = 0;
+write_data = 0;
+```
+
+---
+
+# Write Phase
+
+```verilog id="g5gml1"
+wr_en = 1;
+```
+
+The following data values are written:
+
+| Address | Data Written |
+| ------- | ------------ |
+| 0       | 0            |
+| 1       | 1            |
+| 2       | 2            |
+| 3       | 3            |
+| 4       | 4            |
+| 5       | 5            |
+| 6       | 6            |
+| 7       | 7            |
+| 8       | 8            |
+| 9       | 9            |
+| 10      | 10           |
+| 11      | 11           |
+| 12      | 12           |
+
+---
+
+# Read Phase
+
+```verilog id="39y4yl"
+wr_en = 0;
+```
+
+Addresses are read sequentially.
+
+Expected outputs:
+
+| Address | Read Data |
+| ------- | --------- |
+| 0       | 0         |
+| 1       | 1         |
+| 2       | 2         |
+| 3       | 3         |
+| 4       | 4         |
+| 5       | 5         |
+| 6       | 6         |
+| 7       | 7         |
+| 8       | 8         |
+| 9       | 9         |
+| 10      | 10        |
+| 11      | 11        |
+| 12      | 12        |
+
+---
+
+# Timing Sequence
+
+### Write Cycle
+
+```text id="wlv6el"
+wr_en = 1
+Clock ↑
+Data written into memory
+```
+
+### Read Cycle
+
+```text id="jv8g2w"
+wr_en = 0
+Clock ↑
+Data appears at read_data
+```
+
+---
+
+# Applications
+
+1. Cache Memory
+2. Register Files
+3. Embedded Systems
+4. FPGA Block RAM Implementation
+5. Data Buffers
+6. Processor Memory Systems
+
+---
+
+# Advantages
+
+1. Simple architecture.
+2. Requires less hardware.
+3. Easy FPGA implementation.
+
+---
+
+# Limitation in the Given Code ⚠️
+
+The memory is declared as:
+
+```verilog id="i3lq3f"
+mem[0:63]
+```
+
+Only addresses `0–63` are valid.
+
+Therefore, the address width can be reduced to:
+
+```verilog id="57lyc5"
+input [5:0] addr;
+```
+
+instead of:
+
+```verilog id="e5p34z"
+input [31:0] addr;
+```
+
+This reduces unnecessary hardware usage.
+
+---
+
+# Types of RAM
+
+| Type               | Read/Write Ports                  |
+| ------------------ | --------------------------------- |
+| Single Port RAM    | One port                          |
+| Dual Port RAM      | Two independent ports             |
+| True Dual Port RAM | Two simultaneous read/write ports |
+
+---
+
+# Conclusion
+
+The Verilog code successfully implements a **64 × 32-bit Single Port RAM**. Data is written into memory when `wr_en = 1` and read from memory when `wr_en = 0`. Since only one port is available, read and write operations occur at different clock cycles.
+# Single Port RAM Using Verilog HDL – Notes
+
+## Aim
+
+To design and simulate a **Single Port RAM** using Verilog HDL.
+
+---
+
+# Objective
+
+To implement a memory module that uses a single port for both read and write operations.
+
+---
+
+# What is Single Port RAM?
+
+A Single Port RAM is a memory in which:
+
+* Only one address port is available.
+* Read and write operations cannot occur simultaneously.
+* At a given clock cycle, either a read operation or a write operation is performed.
+
+---
+
+# Module Declaration
+
+```verilog id="1rvnn2"
+module single_port_ram(
+    clk,
+    addr,
+    wr_en,
+    write_data,
+    read_data
+);
+```
+
+---
+
+# Inputs and Outputs
+
+### Inputs
+
+| Signal       | Width   | Description         |
+| ------------ | ------- | ------------------- |
+| `clk`        | 1 bit   | Clock signal        |
+| `addr`       | 32 bits | Memory address      |
+| `wr_en`      | 1 bit   | Write Enable signal |
+| `write_data` | 32 bits | Data to be written  |
+
+### Output
+
+| Signal      | Width   | Description           |
+| ----------- | ------- | --------------------- |
+| `read_data` | 32 bits | Data read from memory |
+
+---
+
+# Memory Declaration
+
+```verilog id="wjlwm5"
+reg [31:0] mem [0:63];
+```
+
+### Explanation
+
+This creates:
+
+* 64 memory locations
+* Each location stores 32 bits
+
+Hence:
+
+```text id="r17qwb"
+Memory Size = 64 × 32 bits
+            = 2048 bits
+            = 256 Bytes
+```
+
+---
+
+# Memory Organization
+
+| Address | Stored Data |
+| ------- | ----------- |
+| 0       | mem[0]      |
+| 1       | mem[1]      |
+| 2       | mem[2]      |
+| ...     | ...         |
+| 63      | mem[63]     |
+
+---
+
+# Sequential Block
+
+```verilog id="k2o5p1"
+always @(posedge clk)
+```
+
+The RAM operates on the positive edge of the clock.
+
+---
+
+# Write Operation
+
+```verilog id="w3ocoz"
+if(wr_en)
+    mem[addr] <= write_data;
+```
+
+### Operation
+
+When:
+
+```text id="4lq0kq"
+wr_en = 1
+```
+
+Data is written into memory.
+
+Example:
+
+```text id="1uln3m"
+addr = 5
+write_data = 32'd25
+```
+
+After the clock edge:
+
+```text id="koc3dy"
+mem[5] = 25
+```
+
+---
+
+# Read Operation
+
+```verilog id="z6ty2m"
+else
+    read_data <= mem[addr];
+```
+
+### Operation
+
+When:
+
+```text id="z3yykz"
+wr_en = 0
+```
+
+Data stored at the specified address is placed on `read_data`.
+
+Example:
+
+```text id="o6l1np"
+addr = 5
+```
+
+Output:
+
+```text id="uxvfh4"
+read_data = mem[5]
+```
+
+---
+
+# Functional Block Diagram
+
+```text id="d8lht1"
+                +----------------+
+addr ---------->|                |
+write_data ---->|      RAM       |----> read_data
+wr_en --------->|                |
+clk ----------->|                |
+                +----------------+
+```
+
+---
+
+# Testbench Explanation
+
+## Clock Generation
+
+```verilog id="ajm7el"
+always #5 clk = ~clk;
+```
+
+Clock period:
+
+```text id="rfll4w"
+10 ns
+```
+
+---
+
+# Initialization
+
+```verilog id="ufnhv7"
+clk = 0;
+wr_en = 0;
+addr = 0;
+write_data = 0;
+```
+
+---
+
+# Write Phase
+
+```verilog id="g5gml1"
+wr_en = 1;
+```
+
+The following data values are written:
+
+| Address | Data Written |
+| ------- | ------------ |
+| 0       | 0            |
+| 1       | 1            |
+| 2       | 2            |
+| 3       | 3            |
+| 4       | 4            |
+| 5       | 5            |
+| 6       | 6            |
+| 7       | 7            |
+| 8       | 8            |
+| 9       | 9            |
+| 10      | 10           |
+| 11      | 11           |
+| 12      | 12           |
+
+---
+
+# Read Phase
+
+```verilog id="39y4yl"
+wr_en = 0;
+```
+
+Addresses are read sequentially.
+
+Expected outputs:
+
+| Address | Read Data |
+| ------- | --------- |
+| 0       | 0         |
+| 1       | 1         |
+| 2       | 2         |
+| 3       | 3         |
+| 4       | 4         |
+| 5       | 5         |
+| 6       | 6         |
+| 7       | 7         |
+| 8       | 8         |
+| 9       | 9         |
+| 10      | 10        |
+| 11      | 11        |
+| 12      | 12        |
+
+---
+
+# Timing Sequence
+
+### Write Cycle
+
+```text id="wlv6el"
+wr_en = 1
+Clock ↑
+Data written into memory
+```
+
+### Read Cycle
+
+```text id="jv8g2w"
+wr_en = 0
+Clock ↑
+Data appears at read_data
+```
+
+---
+
+# Applications
+
+1. Cache Memory
+2. Register Files
+3. Embedded Systems
+4. FPGA Block RAM Implementation
+5. Data Buffers
+6. Processor Memory Systems
+
+---
+
+# Advantages
+
+1. Simple architecture.
+2. Requires less hardware.
+3. Easy FPGA implementation.
+
+---
+
+# Limitation in the Given Code ⚠️
+
+The memory is declared as:
+
+```verilog id="i3lq3f"
+mem[0:63]
+```
+
+Only addresses `0–63` are valid.
+
+Therefore, the address width can be reduced to:
+
+```verilog id="57lyc5"
+input [5:0] addr;
+```
+
+instead of:
+
+```verilog id="e5p34z"
+input [31:0] addr;
+```
+
+This reduces unnecessary hardware usage.
+
+---
+
+# Types of RAM
+
+| Type               | Read/Write Ports                  |
+| ------------------ | --------------------------------- |
+| Single Port RAM    | One port                          |
+| Dual Port RAM      | Two independent ports             |
+| True Dual Port RAM | Two simultaneous read/write ports |
+
+---
+
+# Conclusion
+
+The Verilog code successfully implements a **64 × 32-bit Single Port RAM**. Data is written into memory when `wr_en = 1` and read from memory when `wr_en = 0`. Since only one port is available, read and write operations occur at different clock cycles.
