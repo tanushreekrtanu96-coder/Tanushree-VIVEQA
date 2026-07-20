@@ -1,1 +1,173 @@
-gbvb
+# Full Adder in Verilog – Notes
+
+## Aim
+
+To design and simulate a Full Adder using Verilog HDL.
+
+## What is a Full Adder?
+
+A Full Adder is a combinational circuit that adds three single-bit inputs:
+
+* **A** → First input bit
+* **B** → Second input bit
+* **Cin** → Carry input from previous stage
+
+It produces:
+
+* **Sum (S)** → Addition result
+* **Carry (Cout)** → Carry generated to next stage
+
+### Truth Table
+
+| A | B | Cin | Sum | Cout |
+| - | - | --- | --- | ---- |
+| 0 | 0 | 0   | 0   | 0    |
+| 0 | 0 | 1   | 1   | 0    |
+| 0 | 1 | 0   | 1   | 0    |
+| 0 | 1 | 1   | 0   | 1    |
+| 1 | 0 | 0   | 1   | 0    |
+| 1 | 0 | 1   | 0   | 1    |
+| 1 | 1 | 0   | 0   | 1    |
+| 1 | 1 | 1   | 1   | 1    |
+
+### Boolean Equations
+
+* **Sum = A ⊕ B ⊕ Cin**
+* **Cout = AB + BCin + ACin**
+
+---
+
+# Verilog Design Module
+
+```verilog
+module full_adder(a,b,cin,sum,cout);
+
+input a,b,cin;
+output sum,cout;
+
+assign sum  = a ^ b ^ cin;
+assign cout = (a & b) | (b & cin) | (a & cin);
+
+endmodule
+```
+
+## Explanation
+
+* `module full_adder(a,b,cin,sum,cout);`
+
+  * Defines the Full Adder module.
+
+* `input a,b,cin;`
+
+  * Declares three input signals.
+
+* `output sum,cout;`
+
+  * Declares output signals.
+
+* `assign sum = a ^ b ^ cin;`
+
+  * Computes the Sum using XOR operation.
+
+* `assign cout = (a & b) | (b & cin) | (a & cin);`
+
+  * Computes Carry output using AND and OR operations.
+
+* `endmodule`
+
+  * Ends the module definition.
+
+---
+
+# Testbench Module
+
+```verilog
+module full_adder_tb();
+
+reg a,b,cin;
+wire sum,cout;
+
+full_adder dut(a,b,cin,sum,cout);
+```
+
+## Explanation
+
+* `reg a,b,cin;`
+
+  * Inputs are declared as `reg` because their values change during simulation.
+
+* `wire sum,cout;`
+
+  * Outputs are declared as `wire` because they are driven by the Full Adder module.
+
+* `full_adder dut(a,b,cin,sum,cout);`
+
+  * Instantiates the Full Adder.
+  * `dut` means **Device Under Test**.
+
+---
+
+# Applying Test Inputs
+
+```verilog
+initial begin
+a=0; b=0; cin=0;
+#5 a=0; b=0; cin=1;
+#5 a=0; b=1; cin=0;
+#5 a=0; b=1; cin=1;
+#5 a=1; b=0; cin=0;
+#5 a=1; b=0; cin=1;
+#5 a=1; b=1; cin=0;
+#5 a=1; b=1; cin=1;
+#5 $finish;
+end
+```
+
+## Explanation
+
+* `initial begin`
+
+  * Executes once at the start of simulation.
+
+* `#5`
+
+  * Introduces a delay of 5 time units between input changes.
+
+* `$finish`
+
+  * Stops the simulation after all test cases are executed.
+
+---
+
+# Input Sequence
+
+| Time  | A | B | Cin |
+| ----- | - | - | --- |
+| 0 ns  | 0 | 0 | 0   |
+| 5 ns  | 0 | 0 | 1   |
+| 10 ns | 0 | 1 | 0   |
+| 15 ns | 0 | 1 | 1   |
+| 20 ns | 1 | 0 | 0   |
+| 25 ns | 1 | 0 | 1   |
+| 30 ns | 1 | 1 | 0   |
+| 35 ns | 1 | 1 | 1   |
+
+---
+
+# Expected Output
+
+| A | B | Cin | Sum | Cout |
+| - | - | --- | --- | ---- |
+| 0 | 0 | 0   | 0   | 0    |
+| 0 | 0 | 1   | 1   | 0    |
+| 0 | 1 | 0   | 1   | 0    |
+| 0 | 1 | 1   | 0   | 1    |
+| 1 | 0 | 0   | 1   | 0    |
+| 1 | 0 | 1   | 0   | 1    |
+| 1 | 1 | 0   | 0   | 1    |
+| 1 | 1 | 1   | 1   | 1    |
+
+## Conclusion
+
+The simulation verifies that the Full Adder correctly performs single-bit binary addition with a carry input and generates the appropriate Sum and Carry output.
+
