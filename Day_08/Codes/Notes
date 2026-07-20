@@ -1,0 +1,313 @@
+# Sequence Detector Using D Flip-Flops – Notes
+
+## Aim
+
+To design and simulate a **Sequence Detector** using D Flip-Flops in Verilog HDL.
+
+---
+
+# Objective
+
+The circuit detects a particular binary sequence from a serial input stream `ip` and generates an output `op` whenever the sequence is detected.
+
+---
+
+# Module Declaration
+
+```verilog
+module seq_det(clk,rst,ip,op);
+```
+
+### Inputs
+
+| Signal | Description             |
+| ------ | ----------------------- |
+| `clk`  | Clock signal            |
+| `rst`  | Reset signal            |
+| `ip`   | Serial input bit stream |
+
+### Output
+
+| Signal | Description              |
+| ------ | ------------------------ |
+| `op`   | Sequence detected output |
+
+---
+
+# Internal Signals
+
+```verilog
+wire d1;
+wire q0,qb0,q1,qb1;
+```
+
+| Signal   | Purpose                              |
+| -------- | ------------------------------------ |
+| `q0,qb0` | Output and complement of first D FF  |
+| `q1,qb1` | Output and complement of second D FF |
+| `d1`     | Intermediate signal to second D FF   |
+
+---
+
+# First D Flip-Flop
+
+```verilog
+dff dff0(clk,rst,~ip,q0,qb0);
+```
+
+### Operation
+
+The input to the first flip-flop is:
+
+```text
+D = ~ip
+```
+
+Thus, at every positive clock edge:
+
+```text
+q0(next) = ~ip
+```
+
+This flip-flop stores the complement of the present input.
+
+---
+
+# Intermediate Logic
+
+```verilog
+assign d1 = ip & q0;
+```
+
+### Operation
+
+`d1` becomes HIGH only when:
+
+```text
+ip = 1
+and
+q0 = 1
+```
+
+Since:
+
+```text
+q0 = previous (~ip)
+```
+
+this condition indicates that the previous input was `0` and the current input is `1`.
+
+---
+
+# Second D Flip-Flop
+
+```verilog
+dff dff1(clk,rst,d1,q1,qb1);
+```
+
+### Operation
+
+The second flip-flop stores `d1`.
+
+Thus:
+
+```text
+q1(next) = d1
+```
+
+---
+
+# Output Logic
+
+```verilog
+always @(posedge clk)
+begin
+    if(rst)
+        op <= 1'b0;
+    else
+        op <= ip & q1;
+end
+```
+
+### Operation
+
+Output becomes HIGH when:
+
+```text
+ip = 1
+and
+q1 = 1
+```
+
+This means:
+
+1. Previous pattern generated `q1 = 1`
+2. Current input is `1`
+
+Hence the sequence is detected.
+
+---
+
+# Sequence Detection Analysis
+
+The circuit detects the sequence:
+
+```text
+101
+```
+
+### Explanation
+
+| Input Sequence | q0 | q1 | op |
+| -------------- | -- | -- | -- |
+| 1              | 0  | 0  | 0  |
+| 10             | 1  | 0  | 0  |
+| 101            | 0  | 1  | 1  |
+
+Therefore:
+
+```text
+Detected Sequence = 101
+```
+
+---
+
+# State Representation
+
+### State S0
+
+No bits detected.
+
+### State S1
+
+`1` detected.
+
+### State S2
+
+`10` detected.
+
+### State S3
+
+`101` detected → Output HIGH.
+
+---
+
+# State Diagram
+
+```text
+          1
+      +------+
+      |      |
+      v      |
+     S0 ----> S1
+      ^        |
+      |0       |0
+      |        v
+      +------ S2
+                 |
+                 |1
+                 v
+                S3
+               op = 1
+```
+
+---
+
+# Truth Table
+
+| Previous Bits | Current Input | Output |
+| ------------- | ------------- | ------ |
+| Others        | 0/1           | 0      |
+| 101           | 1             | 1      |
+
+---
+
+# Testbench Description
+
+## Clock Generation
+
+```verilog
+always #5 clk = ~clk;
+```
+
+This generates:
+
+```text
+Clock Period = 10 ns
+```
+
+---
+
+## Initialization
+
+```verilog
+clk = 0;
+rst = 0;
+ip  = 0;
+```
+
+---
+
+## Reset Operation
+
+```verilog
+#12 rst = 1'b1;
+#12 rst = 1'b0;
+```
+
+Reset initializes all outputs.
+
+---
+
+## Input Sequence Application
+
+The testbench applies multiple combinations of:
+
+```text
+1,0,1,0,1,1,1,0,1,...
+```
+
+to verify whether the sequence `101` is detected correctly.
+
+---
+
+# Timing Example
+
+Input:
+
+```text
+ip : 1 0 1
+```
+
+Output:
+
+```text
+op : 0 0 1
+```
+
+Whenever `101` appears in the input stream, `op` becomes HIGH.
+
+---
+
+# Applications
+
+1. Digital Communication Systems
+2. Pattern Recognition
+3. Error Detection Systems
+4. Serial Data Monitoring
+5. Protocol Detection Circuits
+6. Packet Header Detection
+
+---
+
+# Advantages
+
+* Simple implementation using flip-flops.
+* Requires less hardware.
+* Useful for serial data processing.
+
+---
+
+# Conclusion
+
+The Verilog code successfully implements a **101 Sequence Detector** using D Flip-Flops. The detector monitors the serial input stream and generates an output whenever the sequence `101` is detected.
