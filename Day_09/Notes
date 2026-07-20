@@ -1,0 +1,386 @@
+# Vending Machine Controller Using Finite State Machine (FSM) – Notes
+
+## Aim
+
+To design and simulate a **Vending Machine Controller** using Verilog HDL and Finite State Machine (FSM) concepts.
+
+---
+
+# Objective
+
+The vending machine accepts coins and dispenses a product when sufficient money is inserted. If extra money is inserted, the machine also returns change.
+
+---
+
+# Assumptions
+
+| Coin Input | Value    |
+| ---------- | -------- |
+| `2'b01`    | ₹5 Coin  |
+| `2'b10`    | ₹10 Coin |
+
+Product Cost:
+
+```text
+Product Price = ₹15
+```
+
+---
+
+# Module Declaration
+
+```verilog id="l1r8ho"
+module vending_machine(clk,rst,coin,D,C);
+```
+
+---
+
+# Inputs and Outputs
+
+### Inputs
+
+| Signal      | Description   |
+| ----------- | ------------- |
+| `clk`       | Clock signal  |
+| `rst`       | Reset signal  |
+| `coin[1:0]` | Coin inserted |
+
+### Outputs
+
+| Signal | Description          |
+| ------ | -------------------- |
+| `D`    | Dispense signal      |
+| `C`    | Change return signal |
+
+---
+
+# State Encoding
+
+```verilog id="g4h8qu"
+localparam
+S0 = 3'b000,
+S1 = 3'b001,
+S2 = 3'b010,
+S3 = 3'b011,
+S4 = 3'b100;
+```
+
+---
+
+# State Meaning
+
+| State | Amount Collected |
+| ----- | ---------------- |
+| S0    | ₹0               |
+| S1    | ₹5               |
+| S2    | ₹10              |
+| S3    | ₹15              |
+| S4    | ₹20              |
+
+---
+
+# State Registers
+
+```verilog id="4h9e9m"
+reg [2:0] state, next_state;
+```
+
+* `state` → Current state of machine
+* `next_state` → Next state after coin insertion
+
+---
+
+# Current State Logic
+
+```verilog id="77gr7v"
+always @(posedge clk)
+```
+
+### Operation
+
+At every positive edge of clock:
+
+```verilog id="8tb6h8"
+if(rst)
+    state <= S0;
+else
+    state <= next_state;
+```
+
+### Function
+
+* Reset initializes machine to idle state (`S0`).
+* Otherwise machine moves to next state.
+
+---
+
+# Next State Logic
+
+```verilog id="d3ovod"
+always @(*)
+```
+
+This block determines:
+
+1. Next state
+2. Dispense output
+3. Change output
+
+---
+
+# State S0 (₹0 Collected)
+
+```verilog id="49wjsr"
+D = 0;
+C = 0;
+```
+
+Transitions:
+
+| Coin Inserted | Next State |
+| ------------- | ---------- |
+| ₹5            | S1         |
+| ₹10           | S2         |
+| No coin       | S0         |
+
+---
+
+# State S1 (₹5 Collected)
+
+```verilog id="0n5cq0"
+D = 0;
+C = 0;
+```
+
+Transitions:
+
+| Coin    | Next State |
+| ------- | ---------- |
+| ₹5      | S2         |
+| ₹10     | S3         |
+| No coin | S1         |
+
+---
+
+# State S2 (₹10 Collected)
+
+```verilog id="5rz83j"
+D = 0;
+C = 0;
+```
+
+Transitions:
+
+| Coin    | Next State |
+| ------- | ---------- |
+| ₹5      | S3         |
+| ₹10     | S4         |
+| No coin | S2         |
+
+---
+
+# State S3 (₹15 Collected)
+
+```verilog id="yzf0o6"
+D = 1;
+C = 0;
+```
+
+### Operation
+
+* Product is dispensed.
+* No change is returned.
+* Machine returns to idle state.
+
+```verilog id="4wz5im"
+next_state = S0;
+```
+
+---
+
+# State S4 (₹20 Collected)
+
+```verilog id="g3r1gv"
+D = 1;
+C = 1;
+```
+
+### Operation
+
+* Product is dispensed.
+* ₹5 change is returned.
+* Machine returns to idle state.
+
+```verilog id="ttnuwr"
+next_state = S0;
+```
+
+---
+
+# State Diagram
+
+```text
+                 ₹5
+           +--------------+
+           |              |
+           v              |
+         S0 ----₹5----> S1
+          |               |
+         ₹10             ₹10
+          |               |
+          v               v
+         S2 ----₹5-----> S3
+          |
+         ₹10
+          |
+          v
+         S4
+```
+
+---
+
+# State Transition Table
+
+| Present State | Coin | Next State | D | C |
+| ------------- | ---- | ---------- | - | - |
+| S0            | ₹5   | S1         | 0 | 0 |
+| S0            | ₹10  | S2         | 0 | 0 |
+| S1            | ₹5   | S2         | 0 | 0 |
+| S1            | ₹10  | S3         | 1 | 0 |
+| S2            | ₹5   | S3         | 1 | 0 |
+| S2            | ₹10  | S4         | 1 | 1 |
+| S3            | X    | S0         | 1 | 0 |
+| S4            | X    | S0         | 1 | 1 |
+
+---
+
+# Output Meaning
+
+| D | C | Meaning                          |
+| - | - | -------------------------------- |
+| 0 | 0 | Waiting for coins                |
+| 1 | 0 | Dispense product                 |
+| 1 | 1 | Dispense product + Return change |
+
+---
+
+# Testbench Description
+
+## Clock Generation
+
+```verilog id="0htrkn"
+always #5 clk = ~clk;
+```
+
+Clock Period:
+
+```text
+10 ns
+```
+
+---
+
+## Initialization
+
+```verilog id="r7q1df"
+clk = 0;
+rst = 0;
+coin = 0;
+```
+
+---
+
+## Reset
+
+```verilog id="6l7o2f"
+#12 rst = 1;
+#12 rst = 0;
+```
+
+Machine starts from state `S0`.
+
+---
+
+## Coin Inputs
+
+The testbench continuously applies combinations of:
+
+```text
+coin = 1  → ₹5
+coin = 2  → ₹10
+```
+
+to verify all possible transitions.
+
+---
+
+# Example Operation
+
+### Case 1
+
+Insert:
+
+```text
+₹5 + ₹10 = ₹15
+```
+
+Sequence:
+
+```text
+S0 → S1 → S3
+```
+
+Output:
+
+```text
+D = 1
+C = 0
+```
+
+---
+
+### Case 2
+
+Insert:
+
+```text
+₹10 + ₹10 = ₹20
+```
+
+Sequence:
+
+```text
+S0 → S2 → S4
+```
+
+Output:
+
+```text
+D = 1
+C = 1
+```
+
+---
+
+# Applications
+
+1. Snack Vending Machines
+2. Ticket Dispensing Systems
+3. Parking Payment Machines
+4. Automatic Payment Kiosks
+5. ATM Transaction Controllers
+6. FSM-Based Embedded Systems
+
+---
+
+# Advantages
+
+* Easy to implement using FSM.
+* Handles multiple payment conditions.
+* Can be expanded for more products and coin values.
+
+---
+
+# Conclusion
+
+The Verilog code successfully implements a **Vending Machine Controller** using a Finite State Machine. The machine accepts ₹5 and ₹10 coins, dispenses the product when ₹15 or more is collected, and returns change whenever excess money is inserted.
