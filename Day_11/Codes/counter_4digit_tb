@@ -1,0 +1,49 @@
+module counter_4digit_tb;
+
+    reg clk_24mhz;
+    reg reset;
+
+    wire [3:0] ones;
+    wire [3:0] tens;
+    wire [3:0] hundreds;
+    wire [3:0] thousands;
+
+    // Instantiate DUT (Device Under Test)
+    counter_4digit uut (
+        .clk_24mhz(clk_24mhz),
+        .reset(reset),
+        .ones(ones),
+        .tens(tens),
+        .hundreds(hundreds),
+        .thousands(thousands)
+    );
+
+    // Generate 24 MHz clock
+    // Period = 41.67 ns
+    initial begin
+        clk_24mhz = 0;
+        forever #20.833 clk_24mhz = ~clk_24mhz;
+    end
+
+    // Stimulus
+    initial begin
+        // Apply reset
+        reset = 1;
+        #100;
+
+        reset = 0;
+
+        // Run simulation
+        #1000000;
+
+        $finish;
+    end
+
+    // Monitor outputs
+    initial begin
+        $monitor("Time=%0t Reset=%b Count=%d%d%d%d",
+                  $time, reset,
+                  thousands, hundreds, tens, ones);
+    end
+
+endmodule
