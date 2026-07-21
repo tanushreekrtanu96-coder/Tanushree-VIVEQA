@@ -1,0 +1,421 @@
+# FIFO (First In First Out) Memory Using Verilog HDL – Notes
+
+## Aim
+
+To design and simulate a **16 × 8 FIFO (First In First Out) Memory** using Verilog HDL.
+
+---
+
+# Objective
+
+To implement a memory structure in which:
+
+* Data is written sequentially.
+* Data is read in the same order in which it was written.
+
+Hence:
+
+```text id="f8xwaf"
+First Data Written → First Data Read
+```
+
+---
+
+# What is FIFO?
+
+FIFO stands for:
+
+```text id="qu1m3s"
+First In First Out
+```
+
+It is a memory structure widely used for buffering and data transfer between systems operating at different speeds.
+
+Example:
+
+```text id="svr4gm"
+Write Order : A → B → C → D
+Read Order  : A → B → C → D
+```
+
+---
+
+# Module Declaration
+
+```verilog id="4ijfxv"
+module fifo(
+    clk,
+    rst,
+    wr_en,
+    rd_en,
+    write_data,
+    read_data,
+    full,
+    empty
+);
+```
+
+---
+
+# Inputs and Outputs
+
+### Inputs
+
+| Signal       | Width  | Description        |
+| ------------ | ------ | ------------------ |
+| `clk`        | 1 bit  | Clock signal       |
+| `rst`        | 1 bit  | Reset signal       |
+| `wr_en`      | 1 bit  | Write enable       |
+| `rd_en`      | 1 bit  | Read enable        |
+| `write_data` | 8 bits | Data to be written |
+
+### Outputs
+
+| Signal      | Width  | Description           |
+| ----------- | ------ | --------------------- |
+| `read_data` | 8 bits | Data read from FIFO   |
+| `full`      | 1 bit  | FIFO Full indication  |
+| `empty`     | 1 bit  | FIFO Empty indication |
+
+---
+
+# Memory Declaration
+
+```verilog id="5k1q6v"
+reg [7:0] mem [0:15];
+```
+
+### Meaning
+
+* 16 memory locations
+* Each location stores 8 bits.
+
+Hence:
+
+```text id="9q2xpb"
+FIFO Size = 16 × 8 bits
+```
+
+---
+
+# Pointer Registers
+
+```verilog id="bh7wdf"
+reg [4:0] wr_ptr, rd_ptr;
+```
+
+### Why 5 Bits?
+
+To address:
+
+```text id="yyxb3u"
+16 locations → 4 bits required
+```
+
+An additional bit is used for:
+
+```text id="9b8m8d"
+Full/Empty detection
+```
+
+---
+
+# FIFO Structure
+
+```text id="pdzb2r"
+      Write Pointer
+             ↓
++----------------------------------+
+| 0 | 1 | 2 | ... | 14 | 15 |
++----------------------------------+
+             ↑
+        Read Pointer
+```
+
+---
+
+# Empty Condition
+
+```verilog id="b9f1qq"
+assign empty = (wr_ptr == rd_ptr);
+```
+
+FIFO is empty when:
+
+```text id="0u6zq2"
+Write Pointer = Read Pointer
+```
+
+Meaning:
+
+```text id="c0fzw7"
+No unread data exists.
+```
+
+---
+
+# Full Condition
+
+```verilog id="1glj0s"
+assign full =
+(wr_ptr[4] != rd_ptr[4]) &&
+(wr_ptr[3:0] == rd_ptr[3:0]);
+```
+
+### Logic
+
+FIFO becomes full when:
+
+1. Lower address bits are equal.
+2. MSBs are different.
+
+This indicates that the write pointer has completed one full cycle and caught up with the read pointer.
+
+---
+
+# Write Logic
+
+```verilog id="sod2iy"
+always @(posedge clk)
+```
+
+### Reset
+
+```verilog id="ttd0y1"
+wr_ptr <= 0;
+```
+
+### Write Operation
+
+```verilog id="3vfsyc"
+mem[wr_ptr[3:0]] <= write_data;
+wr_ptr <= wr_ptr + 1;
+```
+
+### Conditions
+
+Write occurs only when:
+
+```text id="x6v3io"
+1. Write pulse detected
+2. FIFO is not full
+```
+
+---
+
+# Read Logic
+
+### Reset
+
+```verilog id="p2t8lt"
+rd_ptr <= 0;
+read_data <= 0;
+```
+
+### Read Operation
+
+```verilog id="n2b0sp"
+read_data <= mem[rd_ptr[3:0]];
+rd_ptr <= rd_ptr + 1;
+```
+
+### Conditions
+
+Read occurs only when:
+
+```text id="m7kvdu"
+1. Read pulse detected
+2. FIFO is not empty
+```
+
+---
+
+# Edge Detection Logic
+
+The FIFO uses **positive edge detectors** for `wr_en` and `rd_en`.
+
+---
+
+# Write Enable Edge Detector
+
+```verilog id="rnwbr2"
+assign pos_det_wr_en =
+       ~wr_en_d & wr_en;
+```
+
+This generates a pulse whenever:
+
+```text id="kzvr2w"
+wr_en changes from 0 → 1
+```
+
+---
+
+# Read Enable Edge Detector
+
+```verilog id="xh6fng"
+assign pos_det_rd_en =
+       ~rd_en_d & rd_en;
+```
+
+This generates a pulse whenever:
+
+```text id="cz7tpc"
+rd_en changes from 0 → 1
+```
+
+---
+
+# Why Edge Detection is Used?
+
+Without edge detection:
+
+```text id="h9ghbx"
+wr_en = 1
+```
+
+for multiple clock cycles would continuously write data.
+
+Edge detection ensures:
+
+```text id="f7t3lk"
+One write/read operation per pulse.
+```
+
+---
+
+# FIFO Operation Example
+
+### Writing
+
+```text id="m2vc06"
+Write A
+Write B
+Write C
+```
+
+Memory:
+
+| Address | Data |
+| ------- | ---- |
+| 0       | A    |
+| 1       | B    |
+| 2       | C    |
+
+---
+
+### Reading
+
+Read order:
+
+```text id="ww7jzb"
+A → B → C
+```
+
+Thus:
+
+```text id="x5yqu6"
+FIFO property satisfied.
+```
+
+---
+
+# Pointer Movement
+
+```text id="ydbb7u"
+Write:
+
+wr_ptr : 0 → 1 → 2 → 3
+
+Read:
+
+rd_ptr : 0 → 1 → 2 → 3
+```
+
+---
+
+# Timing Sequence
+
+```text id="lv0iql"
+Clock ↑
+      |
+      |---- Write Data
+      |
+      |---- Read Data
+```
+
+FIFO operations are synchronous with the clock.
+
+---
+
+# Applications
+
+1. UART Buffers
+2. Processor Pipelines
+3. Audio Streaming
+4. Video Processing
+5. Network Routers
+6. DMA Controllers
+7. Clock Domain Crossing Buffers
+
+---
+
+# Advantages
+
+1. Simple data buffering.
+2. Prevents data loss.
+3. Handles different producer/consumer speeds.
+4. Easy FPGA implementation.
+
+---
+
+# Important Concepts Used
+
+### Circular Buffer
+
+FIFO behaves as a circular memory:
+
+```text id="i1wby7"
+15 → 0 → 1 → ...
+```
+
+---
+
+### Pointer-Based Memory Access
+
+Data is accessed using:
+
+```text id="gjptny"
+wr_ptr
+rd_ptr
+```
+
+instead of shifting data.
+
+---
+
+### Full Detection
+
+Uses extra pointer MSB to distinguish:
+
+```text id="x6nhje"
+FULL
+from
+EMPTY
+```
+
+when addresses become equal.
+
+---
+
+# Limitations
+
+1. Simultaneous read and write are not handled separately.
+2. No overflow/underflow error flags.
+3. Synchronization between different clock domains is not included.
+
+---
+
+# Conclusion
+
+The Verilog code successfully implements a **16 × 8 synchronous FIFO memory**. Data is written and read using write and read pointers, while `full` and `empty` flags indicate the status of the FIFO. Edge detectors ensure that only one read or write operation occurs for each enable pulse.
