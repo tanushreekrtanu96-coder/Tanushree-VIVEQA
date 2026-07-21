@@ -1,0 +1,357 @@
+# 4-Digit BCD Counter Using Verilog HDL – Notes
+
+## Aim
+
+To design and simulate a **4-Digit BCD Counter** using Verilog HDL that increments once every second using a 24 MHz clock.
+
+---
+
+# Objective
+
+The circuit counts from:
+
+```text
+0000 → 0001 → 0002 → ... → 9999 → 0000
+```
+
+Each digit is stored separately in **BCD (Binary Coded Decimal)** format.
+
+---
+
+# Module Declaration
+
+```verilog
+module counter_4digit (
+    input wire clk_24mhz,
+    input wire reset,
+    output reg [3:0] ones,
+    output reg [3:0] tens,
+    output reg [3:0] hundreds,
+    output reg [3:0] thousands
+);
+```
+
+---
+
+# Inputs and Outputs
+
+### Inputs
+
+| Signal      | Description         |
+| ----------- | ------------------- |
+| `clk_24mhz` | 24 MHz system clock |
+| `reset`     | Asynchronous reset  |
+
+### Outputs
+
+| Signal      | Description           |
+| ----------- | --------------------- |
+| `ones`      | Ones digit (0–9)      |
+| `tens`      | Tens digit (0–9)      |
+| `hundreds`  | Hundreds digit (0–9)  |
+| `thousands` | Thousands digit (0–9) |
+
+---
+
+# Internal Register
+
+```verilog
+reg [24:0] sec_counter = 0;
+```
+
+### Purpose
+
+The FPGA clock runs at:
+
+```text
+24 MHz = 24,000,000 clock pulses per second
+```
+
+Therefore, a divider is required to generate a **1-second pulse**.
+
+---
+
+# Why 25 Bits?
+
+To count up to:
+
+```text
+24,000,000 ≈ 2^25
+```
+
+25 bits are sufficient.
+
+---
+
+# Sequential Block
+
+```verilog
+always @(posedge clk_24mhz or posedge reset)
+```
+
+The counter updates on:
+
+1. Positive edge of clock
+2. Positive edge of reset
+
+Hence, the reset is **asynchronous**.
+
+---
+
+# Reset Operation
+
+```verilog
+if(reset)
+begin
+    sec_counter <= 0;
+    ones <= 0;
+    tens <= 0;
+    hundreds <= 0;
+    thousands <= 0;
+end
+```
+
+### Operation
+
+Whenever reset becomes HIGH:
+
+```text
+Counter = 0000
+```
+
+and the second counter is cleared.
+
+---
+
+# 1-Second Clock Divider
+
+```verilog
+if(sec_counter == 24_000_000 - 1)
+```
+
+### Operation
+
+After counting:
+
+```text
+0 → 23,999,999
+```
+
+one second has elapsed.
+
+Then:
+
+```verilog
+sec_counter <= 0;
+```
+
+and the BCD digits are incremented.
+
+---
+
+# BCD Counter Logic
+
+## Ones Digit
+
+```verilog
+if(ones == 9)
+    ones <= 0;
+else
+    ones <= ones + 1;
+```
+
+Counts:
+
+```text
+0 → 1 → 2 → ... → 9 → 0
+```
+
+---
+
+## Tens Digit
+
+Whenever:
+
+```text
+ones = 9
+```
+
+the tens digit increments.
+
+```verilog
+if(tens == 9)
+    tens <= 0;
+else
+    tens <= tens + 1;
+```
+
+---
+
+## Hundreds Digit
+
+Whenever:
+
+```text
+ones = 9
+tens = 9
+```
+
+the hundreds digit increments.
+
+---
+
+## Thousands Digit
+
+Whenever:
+
+```text
+ones = 9
+tens = 9
+hundreds = 9
+```
+
+the thousands digit increments.
+
+---
+
+# Counting Sequence
+
+| Decimal Count | Thousands | Hundreds | Tens | Ones |
+| ------------- | --------- | -------- | ---- | ---- |
+| 0             | 0         | 0        | 0    | 0    |
+| 1             | 0         | 0        | 0    | 1    |
+| 9             | 0         | 0        | 0    | 9    |
+| 10            | 0         | 0        | 1    | 0    |
+| 99            | 0         | 0        | 9    | 9    |
+| 100           | 0         | 1        | 0    | 0    |
+| 999           | 0         | 9        | 9    | 9    |
+| 1000          | 1         | 0        | 0    | 0    |
+| 9999          | 9         | 9        | 9    | 9    |
+| Overflow      | 0         | 0        | 0    | 0    |
+
+---
+
+# Maximum Count
+
+The maximum count is:
+
+```text
+9999
+```
+
+After this:
+
+```text
+9999 + 1 = 0000
+```
+
+Thus, it behaves as a:
+
+```text
+MOD-10000 Counter
+```
+
+---
+
+# Functional Block Diagram
+
+```text
+24 MHz Clock
+       |
+       v
++----------------+
+| Clock Divider  |
+| (1 second)     |
++----------------+
+       |
+       v
++----------------+
+| Ones Counter   |
++----------------+
+       |
+       v
++----------------+
+| Tens Counter   |
++----------------+
+       |
+       v
++----------------+
+| Hundreds Cntr  |
++----------------+
+       |
+       v
++----------------+
+| Thousands Cntr |
++----------------+
+```
+
+---
+
+# Timing Example
+
+```text
+Time(s)    Display
+0          0000
+1          0001
+2          0002
+...
+9          0009
+10         0010
+11         0011
+...
+9999       9999
+10000      0000
+```
+
+---
+
+# Applications
+
+1. Digital Clocks
+2. Stopwatch Systems
+3. Event Counters
+4. Scoreboards
+5. Seven-Segment Display Controllers
+6. FPGA Timer Projects
+
+---
+
+# Advantages
+
+1. Human-readable decimal counting.
+2. Easy interfacing with seven-segment displays.
+3. Simple hierarchical design.
+
+---
+
+# Important Concepts Used
+
+### Clock Division
+
+Converts 24 MHz clock into a 1 Hz signal.
+
+### BCD Counting
+
+Each digit counts only from:
+
+```text
+0 → 9
+```
+
+instead of:
+
+```text
+0 → 15
+```
+
+like a normal binary counter.
+
+### Cascaded Counters
+
+Each higher digit increments only when the lower digit overflows.
+
+---
+
+# Conclusion
+
+The Verilog code successfully implements a **4-Digit BCD Counter** using a 24 MHz clock source. A clock divider generates a 1-second pulse, and four cascaded BCD counters count from `0000` to `9999`, after which the count resets to `0000`.
