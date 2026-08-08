@@ -1,0 +1,37 @@
+`timescale 1ns/1ps
+module tb_dds_channel;
+    reg clk = 0, rst = 1, tick = 0;
+    reg [15:0] freq_word;
+    wire signed [7:0] sample;
+
+    dds_channel dut (.clk(clk), .rst(rst), .tick(tick), .freq_word(freq_word), .sample(sample));
+
+    always #5 clk = ~clk; // 100MHz
+
+    integer zero_crossings = 0;
+    reg signed [7:0] prev_sample = 0;
+
+    initial begin
+        rst = 1; freq_word = 16'd9904; // 1209 Hz
+        repeat (5) @(posedge clk);
+        rst = 0;
+
+        // generate 8kHz ticks (every 12500ns at 100MHz) for enough samples to cover several cycles
+        repeat (2000) begin
+            @(posedge clk); tick = 1; @(posedge clk); tick = 0;
+            repeat (1248) @(posedge clk); // approximate remaining wait for 8kHz period
+            if ((prev_sample < 0 && sample >= 0) || (prev_sample >= 0 && sample < 0))
+                zero_crossings = zero_crossings + 1;
+            prev_sample = sample;
+        end
+
+        // Expected zero crossings for 1209Hz over duration of 2000 samples @ 8kHz (=0.25s):
+        // 1209Hz * 0.25s * 2crossings/cycle = ~604 crossings
+        $display("zero_crossings = %0d (expect ~600)", zero_crossings);
+        if (zero_crossings > 500 && zero_crossings < 700)
+            $display("PASS: DDS frequency approximately correct");
+        else
+            $display("FAIL: DDS frequency out of expected range");
+        $finish;
+    end
+endmodule
