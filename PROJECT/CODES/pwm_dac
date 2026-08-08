@@ -1,0 +1,13 @@
+module pwm_dac (
+    input  wire clk,                 // fast carrier clock (system clock)
+    input  wire signed [7:0] sample, // -128..127
+    output reg  pwm_out = 0
+);
+    reg [7:0] cnt = 0;
+    wire [7:0] duty = sample + 8'd128; // shift to unsigned 0..255
+
+    always @(posedge clk) begin
+        cnt <= cnt + 1;
+        pwm_out <= (cnt < duty);
+    end
+endmodule
