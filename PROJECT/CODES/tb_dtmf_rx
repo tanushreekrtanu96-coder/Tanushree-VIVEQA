@@ -1,0 +1,54 @@
+`timescale 1ns/1ps
+module tb_dtmf_rx;
+    reg clk = 0, rst = 1, tick = 0;
+    reg signed [7:0] sample_in = 0;
+    wire [3:0] decoded_key;
+    wire decoded_valid;
+
+    dtmf_rx dut (
+        .clk(clk), .rst(rst), .tick(tick), .sample_in(sample_in),
+        .decoded_key(decoded_key), .decoded_valid(decoded_valid)
+    );
+
+    always #5 clk = ~clk;
+    integer errors = 0;
+
+    real phase_low, phase_high;
+
+    task feed_tone(input real f_low, input real f_high, input [3:0] expected_key);
+        integer i, pulses;
+        real s;
+        begin
+            phase_low = 0.0; phase_high = 0.0;
+            rst = 1; @(posedge clk); rst = 0;
+            pulses = 0;
+            while (pulses < 2) begin
+                s = 63.0*$sin(phase_low) + 63.0*$sin(phase_high);
+                sample_in = $rtoi(s);
+                phase_low  = phase_low  + 2.0*3.14159265*f_low/8000.0;
+                phase_high = phase_high + 2.0*3.14159265*f_high/8000.0;
+                @(posedge clk); tick = 1; @(posedge clk); tick = 0;
+                if (decoded_valid) pulses = pulses + 1;
+            end
+            if (decoded_key !== expected_key) begin
+                $display("FAIL: tone (%0.0fHz,%0.0fHz) expected key=%0h, got %0h",
+                          f_low, f_high, expected_key, decoded_key);
+                errors = errors + 1;
+            end else begin
+                $display("PASS: tone (%0.0fHz,%0.0fHz) decoded as key=%0h",
+                          f_low, f_high, decoded_key);
+            end
+        end
+    endtask
+
+    initial begin
+        feed_tone(697.0,  1209.0, 4'h0); // "1"
+        feed_tone(941.0,  1633.0, 4'hF); // "D"
+        feed_tone(852.0,  1477.0, 4'hB); // "C"
+        feed_tone(770.0,  1336.0, 4'h5); // "5"
+
+        if (errors == 0) $display("=== PASS: dtmf_rx all checks passed ===");
+        else $display("=== FAIL: %0d errors ===", errors);
+        $finish;
+    end
+endmodule
