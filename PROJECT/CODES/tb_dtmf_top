@@ -1,0 +1,55 @@
+
+module tb_dtmf_top;
+    localparam CLK_FREQ_HZ = 10_000_000;
+
+    reg clk = 0, rst = 1;
+    reg [3:0] sw = 0;
+    reg btn_send = 0;
+    wire pwm_audio_l, pwm_audio_r, led_valid, led_valid;
+    wire [6:0] seg;
+    wire [3:0] an;   // NEW
+
+    dtmf_top #(.CLK_FREQ_HZ(CLK_FREQ_HZ)) dut (
+        .clk(clk), .rst(rst), .sw(sw), .btn_send(btn_send),
+       .pwm_audio_l(pwm_audio_l),.pwm_audio_r(pwm_audio_r), .seg(seg), .an(an), .led_valid(led_valid)
+    );
+
+    always #50 clk = ~clk;
+
+    integer i;
+
+    task send_key(input [3:0] k);
+        integer pulses;
+        begin
+            sw = k;
+            btn_send = 1;
+            pulses = 0;
+            while (pulses < 2) begin
+                @(posedge dut.u_rx.g0.block_done);
+                pulses = pulses + 1;
+            end
+            @(posedge clk);
+            if (dut.decoded_key !== k)
+                $display("FAIL: sent key %0h, decoded %0h", k, dut.decoded_key);
+            else
+                $display("PASS: key %0h decoded correctly", k);
+
+            // NEW: sanity check that only digit 0 is enabled
+            if (an !== 4'b1110)
+                $display("FAIL: an incorrect, expected 4'b1110, got %b", an);
+
+            btn_send = 0;
+            @(posedge dut.u_rx.g0.block_done);
+        end
+    endtask
+
+    initial begin
+        rst = 1; repeat (10) @(posedge clk); rst = 0;
+
+        for (i = 0; i < 16; i = i + 1)
+            send_key(i[3:0]);
+
+        $display("=== Testbench complete ===");
+        $finish;
+    end
+endmodule
