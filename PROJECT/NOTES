@@ -1,1 +1,117 @@
+# FPGA-Based DTMF Tone Generator and Decoder
+
+**Direct Digital Synthesis + Goertzel Algorithm on the RealDigital Boolean Board (AMD/Xilinx Artix-7)**
+
+## Overview
+
+This project implements a complete DTMF (Dual-Tone Multi-Frequency) codec entirely in digital hardware. DTMF is the signaling standard used in telephone keypads, IVR systems, and ATMs — each key press transmits two simultaneous audio frequencies (one "row" tone, one "column" tone), and a receiver identifies both to recover the original key.
+
+The system implements **both halves** of this protocol on a single FPGA:
+- A **tone generator** that synthesizes the correct dual-tone pair for any of the 16 standard DTMF symbols (`0`–`9`, `A`–`D`, `*`, `#`)
+- A **tone decoder** that analyzes an incoming audio stream and identifies which key was pressed
+
+This maps directly to core Electronics & Communication Engineering concepts: signal synthesis, digital filtering, and telecom protocol design — implemented as synchronous digital logic rather than in software.
+
+## Key Techniques
+
+| Technique | Where it's used | Why |
+|---|---|---|
+| **Direct Digital Synthesis (DDS)** | Tone generation | Phase-accumulator + sine lookup table generates precise, tunable sine waves digitally — the same principle used in real RF/signal-generation hardware |
+| **Goertzel Algorithm** | Tone decoding | An efficient single-frequency energy detector — the same technique used in real DTMF decoder ICs and telecom equipment, more efficient than a full FFT when only a handful of known frequencies need detection |
+| **Fixed-point arithmetic** | Both paths | All signal processing is done in fixed-point (no floating point), matching real hardware DSP design constraints |
+| **PWM DAC** | Audio output | Converts digital samples to an analog-ish signal for audible output via a standard audio jack |
+
+## Architecture
+
+```
+switches[3:0] (key select) ──┐
+                              ├─► dtmf_freq_lut ──► DDS(low tone) ──┐
+btn_send ─────────────────────┘                                     ├─► SUM ──► pwm_dac ──► AUDIO OUT
+                                                DDS(high tone) ──────┘
+                                                                            │
+                                                                    (shared 8kHz sample stream)
+                                                                            │
+                                    8× goertzel_block (697,770,852,941,1209,1336,1477,1633 Hz)
+                                                        │
+                                          argmax(low group) + argmax(high group)
+                                                        │
+                                              decoded_key[3:0] ──► 7-segment display + status LED
+```
+
+A single shared **8 kHz sample clock** drives both the tone generator and the decoder, enabling a fully self-contained digital loopback design with no external microphone required for core functional verification.
+
+### Key Encoding
+
+Standard telephone keypad matrix — `key[3:2]` selects the row (low frequency), `key[1:0]` selects the column (high frequency):
+
+| key[3:0] | Digit | key[3:0] | Digit | key[3:0] | Digit | key[3:0] | Digit |
+|---|---|---|---|---|---|---|---|
+| `0x0` | 1 | `0x4` | 4 | `0x8` | 7 | `0xC` | * |
+| `0x1` | 2 | `0x5` | 5 | `0x9` | 8 | `0xD` | 0 |
+| `0x2` | 3 | `0x6` | 6 | `0xA` | 9 | `0xE` | # |
+| `0x3` | A | `0x7` | B | `0xB` | C | `0xF` | D |
+
+## Repository Structure
+
+```
+├── src/
+│   ├── sine_lut32.v          # 32-point sine lookup table for DDS
+│   ├── phase_acc.v           # DDS phase accumulator
+│   ├── dds_channel.v         # Single-tone DDS generator (phase_acc + sine_lut32)
+│   ├── sample_clk_gen.v      # 8kHz sample-rate clock divider
+│   ├── dtmf_freq_lut.v       # Key code -> DDS frequency word lookup
+│   ├── dtmf_tx.v             # Dual-tone generator top level
+│   ├── pwm_dac.v             # PWM-based digital-to-analog conversion
+│   ├── goertzel_block.v      # Single-frequency Goertzel energy detector
+│   ├── dtmf_rx.v             # 8-channel decoder + argmax key recovery
+│   ├── seven_seg_hex.v       # 7-segment hex/DTMF-symbol display driver
+│   └── dtmf_top.v            # Top-level integration
+├── sim/
+│   ├── tb_sine_lut32.v
+│   ├── tb_phase_acc.v
+│   ├── tb_sample_clk_gen.v
+│   ├── tb_dds_channel.v
+│   ├── tb_dtmf_freq_lut.v
+│   ├── tb_dtmf_tx.v
+│   ├── tb_pwm_dac.v
+│   ├── tb_goertzel_block.v
+│   ├── tb_dtmf_rx.v
+│   ├── tb_seven_seg_hex.v
+│   └── tb_dtmf_top.v         # Full-system testbench (all 16 keys)
+└── constraints/
+    └── dtmf_top.xdc
+```
+
+## Tools
+
+- **Vivado 2025.2** (XSim behavioral simulator, synthesis, implementation)
+- **Verilog-2001** (no SystemVerilog-only constructs)
+- Target device: `xc7a35tcsg324-1` (AMD/Xilinx Artix-7, RealDigital Boolean Board)
+
+## Results
+
+### Simulation
+Full-system testbench (`tb_dtmf_top.v`) verified all 16 standard DTMF symbols decode correctly through the complete digital-loopback pipeline (generator → shared sample stream → decoder):
+
+```
+PASS: key 0 decoded correctly
+PASS: key 1 decoded correctly
+...
+PASS: key f decoded correctly
+=== Testbench complete ===
+```
+
+Individual unit testbenches additionally verify each module (sine table symmetry, DDS frequency accuracy, Goertzel frequency discrimination, display segment mapping, etc.) in isolation.
+
+### Hardware
+Deployed and tested on the RealDigital Boolean Board:
+- ✅ **7-segment display** — correctly shows the decoded key for all 16 inputs
+- ✅ **Status LED** — correctly indicates a valid decode while the send button is held
+- 🔧 **Audio output** — decode logic is confirmed correct via the display/LED; the analog audio path (PWM → jack) is still being debugged, currently isolating whether the board's audio jack requires a proper I2S-based audio codec interface rather than raw single-bit PWM
+
+## Design Notes / Known Limitations
+
+- Goertzel coefficients are computed for a 205-sample block at an 8 kHz sample rate (`k = round(205·f/8000)`), matching standard telecom Goertzel implementations for DTMF.
+- The design decodes one key at a time (digital loopback); it does not yet decode a live acoustic signal from a microphone.
+- PWM audio output assumes the board's audio jack accepts raw PWM; if the board uses a dedicated audio codec IC, a proper I2S transmitter would be needed instead (see Known Limitations above).
 
