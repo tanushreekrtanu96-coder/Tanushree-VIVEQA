@@ -1,0 +1,33 @@
+`timescale 1ns/1ps
+module tb_seven_seg_hex;
+    reg [3:0] key;
+    wire [6:0] seg;
+    integer errors = 0;
+
+    seven_seg_hex dut (.key(key), .seg(seg));
+
+    task check(input [3:0] k, input [6:0] expected);
+        begin
+            key = k; #1;
+            if (seg !== expected) begin
+                $display("FAIL: key=%0h expected seg=%b, got %b", k, expected, seg);
+                errors = errors + 1;
+            end else begin
+                $display("PASS: key=%0h -> seg=%b", k, seg);
+            end
+        end
+    endtask
+
+    initial begin
+        check(4'h0, 7'b1111001); // "1"
+        check(4'h1, 7'b0100100); // "2"
+        check(4'hD, 7'b1000000); // "0"
+        check(4'hC, 7'b1000110); // "*"
+        check(4'hE, 7'b0110110); // "#"
+        check(4'hF, 7'b0100001); // "d"
+
+        if (errors == 0) $display("=== PASS: seven_seg_hex all checks passed ===");
+        else $display("=== FAIL: %0d errors ===", errors);
+        $finish;
+    end
+endmodule
