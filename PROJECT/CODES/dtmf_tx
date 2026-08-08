@@ -1,0 +1,23 @@
+
+module dtmf_tx(
+    input  wire clk,
+    input  wire rst,
+    input  wire tick,
+    input  wire [3:0] key,
+    input  wire key_valid,          // hold high while sending
+    output reg  signed [7:0] audio_sample = 0
+);
+    wire [15:0] low_word, high_word;
+    dtmf_freq_lut u_lut (.key(key), .low_word(low_word), .high_word(high_word));
+
+    wire signed [7:0] s_low, s_high;
+    dds_channel u_low  (.clk(clk), .rst(rst), .tick(tick), .freq_word(low_word),  .sample(s_low));
+    dds_channel u_high (.clk(clk), .rst(rst), .tick(tick), .freq_word(high_word), .sample(s_high));
+
+    always @(posedge clk) begin
+        if (rst) audio_sample <= 0;
+        else if (tick)
+            audio_sample <= key_valid ? (s_low + s_high) : 8'sd0;
+    end
+endmodule
+
