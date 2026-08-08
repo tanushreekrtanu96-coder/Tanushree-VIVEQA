@@ -1,0 +1,18 @@
+
+module sine_lut32(
+    input  wire [4:0] addr,
+    output reg  signed [7:0] value
+);
+    always @* begin
+        case (addr)
+            5'd0: value=  0;  5'd1: value= 12;  5'd2: value= 24;  5'd3: value= 35;
+            5'd4: value= 45;  5'd5: value= 52;  5'd6: value= 58;  5'd7: value= 62;
+            5'd8: value= 63;  5'd9: value= 62;  5'd10:value= 58;  5'd11:value= 52;
+            5'd12:value= 45;  5'd13:value= 35;  5'd14:value= 24;  5'd15:value= 12;
+            5'd16:value=  0;  5'd17:value=-12;  5'd18:value=-24;  5'd19:value=-35;
+            5'd20:value=-45;  5'd21:value=-52;  5'd22:value=-58;  5'd23:value=-62;
+            5'd24:value=-63;  5'd25:value=-62;  5'd26:value=-58;  5'd27:value=-52;
+            5'd28:value=-45;  5'd29:value=-35;  5'd30:value=-24;  5'd31:value=-12;
+        endcase
+    end
+endmodule
