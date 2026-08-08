@@ -1,0 +1,16 @@
+module phase_acc #(
+    parameter WIDTH = 16
+)(
+    input  wire clk,
+    input  wire rst,
+    input  wire tick,               // sample-rate enable (8 kHz)
+    input  wire [WIDTH-1:0] freq_word,
+    output wire [4:0] lut_addr      // top 5 bits -> sine_lut32 index
+);
+    reg [WIDTH-1:0] phase = 0;
+    always @(posedge clk)
+        if (rst) phase <= 0;
+        else if (tick) phase <= phase + freq_word;
+
+    assign lut_addr = phase[WIDTH-1 -: 5];
+endmodule
