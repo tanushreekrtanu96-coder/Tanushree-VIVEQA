@@ -1,0 +1,49 @@
+module dtmf_rx (
+    input  wire clk,
+    input  wire rst,
+    input  wire tick,
+    input  wire signed [7:0] sample_in,
+    output reg  [3:0] decoded_key = 0,
+    output reg  decoded_valid = 0
+);
+    wire [7:0] block_done_vec;
+    wire signed [39:0] mag [0:7];
+
+    localparam signed [15:0] C0=16'sd13936, C1=16'sd13393, C2=16'sd12783, C3=16'sd12134,
+                              C4=16'sd9517,  C5=16'sd8256,  C6=16'sd6461,  C7=16'sd4578;
+
+    goertzel_block #(.COEFF(C0)) g0 (.clk(clk),.rst(rst),.tick(tick),.sample_in(sample_in),.block_done(block_done_vec[0]),.mag(mag[0]));
+    goertzel_block #(.COEFF(C1)) g1 (.clk(clk),.rst(rst),.tick(tick),.sample_in(sample_in),.block_done(block_done_vec[1]),.mag(mag[1]));
+    goertzel_block #(.COEFF(C2)) g2 (.clk(clk),.rst(rst),.tick(tick),.sample_in(sample_in),.block_done(block_done_vec[2]),.mag(mag[2]));
+    goertzel_block #(.COEFF(C3)) g3 (.clk(clk),.rst(rst),.tick(tick),.sample_in(sample_in),.block_done(block_done_vec[3]),.mag(mag[3]));
+    goertzel_block #(.COEFF(C4)) g4 (.clk(clk),.rst(rst),.tick(tick),.sample_in(sample_in),.block_done(block_done_vec[4]),.mag(mag[4]));
+    goertzel_block #(.COEFF(C5)) g5 (.clk(clk),.rst(rst),.tick(tick),.sample_in(sample_in),.block_done(block_done_vec[5]),.mag(mag[5]));
+    goertzel_block #(.COEFF(C6)) g6 (.clk(clk),.rst(rst),.tick(tick),.sample_in(sample_in),.block_done(block_done_vec[6]),.mag(mag[6]));
+    goertzel_block #(.COEFF(C7)) g7 (.clk(clk),.rst(rst),.tick(tick),.sample_in(sample_in),.block_done(block_done_vec[7]),.mag(mag[7]));
+
+    // argmax over low group (0-3) and high group (4-7)
+    reg [1:0] low_idx, high_idx;
+    always @* begin
+        low_idx = 0;
+        if (mag[1] > mag[low_idx]) low_idx = 1;
+        if (mag[2] > mag[low_idx]) low_idx = 2;
+        if (mag[3] > mag[low_idx]) low_idx = 3;
+
+        high_idx = 0;
+        if (mag[5] > mag[4+high_idx]) high_idx = 1;
+        if (mag[6] > mag[4+high_idx]) high_idx = 2;
+        if (mag[7] > mag[4+high_idx]) high_idx = 3;
+    end
+
+    always @(posedge clk) begin
+        if (rst) begin
+            decoded_key <= 0; decoded_valid <= 0;
+        end else begin
+            decoded_valid <= 0;
+            if (block_done_vec[0]) begin // all 8 finish together, use ch0 as the timing reference
+                decoded_key   <= {low_idx, high_idx};
+                decoded_valid <= 1;
+            end
+        end
+    end
+endmodule
