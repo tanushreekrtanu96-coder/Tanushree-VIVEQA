@@ -1,0 +1,49 @@
+`timescale 1ns/1ps
+module tb_phase_acc;
+    reg clk = 0, rst = 1, tick = 0;
+    reg [15:0] freq_word;
+    wire [4:0] lut_addr;
+
+    phase_acc #(.WIDTH(16)) dut (
+        .clk(clk), .rst(rst), .tick(tick), .freq_word(freq_word), .lut_addr(lut_addr)
+    );
+
+    always #5 clk = ~clk;
+    integer errors = 0;
+
+    initial begin
+        freq_word = 16'd1000;
+        rst = 1; @(posedge clk); rst = 0;
+
+        if (lut_addr !== 0) begin
+            $display("FAIL: phase not zero after reset");
+            errors = errors + 1;
+        end
+
+        // advance one tick, check phase register directly via hierarchical ref
+        @(posedge clk); tick = 1; @(posedge clk); tick = 0;
+        @(posedge clk);
+        if (dut.phase !== 16'd1000) begin
+            $display("FAIL: expected phase=1000, got %0d", dut.phase);
+            errors = errors + 1;
+        end
+
+        // advance 9 more ticks -> phase = 10000, top 5 bits = 10000>>11 = 4
+        repeat (9) begin
+            @(posedge clk); tick = 1; @(posedge clk); tick = 0;
+        end
+        @(posedge clk);
+        if (dut.phase !== 16'd10000) begin
+            $display("FAIL: expected phase=10000, got %0d", dut.phase);
+            errors = errors + 1;
+        end
+        if (lut_addr !== (16'd10000 >> 11)) begin
+            $display("FAIL: lut_addr mismatch, expected %0d got %0d", (16'd10000>>11), lut_addr);
+            errors = errors + 1;
+        end
+
+        if (errors == 0) $display("PASS: phase_acc all checks passed");
+        else $display("FAIL: %0d errors found", errors);
+        $finish;
+    end
+endmodule
