@@ -1,0 +1,43 @@
+`timescale 1ns/1ps
+module tb_sine_lut32;
+    reg [4:0] addr;
+    wire signed [7:0] value;
+    integer errors = 0;
+    integer i;
+    reg signed [7:0] v1;
+
+    sine_lut32 dut (.addr(addr), .value(value));
+
+    task check(input [4:0] a, input signed [7:0] expected);
+        begin
+            addr = a; #1;
+            if (value !== expected) begin
+                $display("FAIL: addr=%0d expected=%0d got=%0d", a, expected, value);
+                errors = errors + 1;
+            end
+        end
+    endtask
+
+    initial begin
+        check(0, 0);
+        check(8, 63);
+        check(16, 0);
+        check(24, -63);
+        check(4, 45);
+        check(20, -45);
+
+        for (i = 0; i < 16; i = i + 1) begin
+            addr = i[4:0]; #1;
+            v1 = value;
+            addr = i[4:0] + 5'd16; #1;
+            if (value !== -v1) begin
+                $display("FAIL: symmetry broken at i=%0d (v1=%0d, v2=%0d)", i, v1, value);
+                errors = errors + 1;
+            end
+        end
+
+        if (errors == 0) $display("PASS: sine_lut32 all checks passed");
+        else $display("FAIL: %0d errors found", errors);
+        $finish;
+    end
+endmodule
