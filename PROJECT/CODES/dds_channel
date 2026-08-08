@@ -1,0 +1,17 @@
+
+module dds_channel #(
+    parameter WIDTH = 16
+)(
+    input  wire clk,
+    input  wire rst,
+    input  wire tick,
+    input  wire [WIDTH-1:0] freq_word,
+    output wire signed [7:0] sample
+);
+    wire [4:0] addr;
+    phase_acc #(.WIDTH(WIDTH)) u_pa (
+        .clk(clk), .rst(rst), .tick(tick), .freq_word(freq_word), .lut_addr(addr)
+    );
+    sine_lut32 u_lut (.addr(addr), .value(sample));
+endmodule
+
