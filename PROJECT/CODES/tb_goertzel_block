@@ -1,0 +1,45 @@
+`timescale 1ns/1ps
+module tb_goertzel_block;
+    reg clk = 0, rst = 1, tick = 0;
+    reg signed [7:0] sample_in = 0;
+    wire block_done;
+    wire signed [39:0] mag;
+
+    // tuned for 697Hz (k=18, N=205, Fs=8000)
+    goertzel_block #(.COEFF(16'sd13936), .N(205)) dut (
+        .clk(clk), .rst(rst), .tick(tick), .sample_in(sample_in),
+        .block_done(block_done), .mag(mag)
+    );
+
+    always #5 clk = ~clk;
+
+    // simple sine generator at test frequency (software model, not DUT)
+    real phase = 0.0;
+    real test_freq;
+
+    task run_block(input real freq_hz);
+        integer i;
+        begin
+            phase = 0.0;
+            test_freq = freq_hz;
+            rst = 1; @(posedge clk); rst = 0;
+            for (i = 0; i < 205; i = i + 1) begin
+                sample_in = $rtoi(63.0 * $sin(phase));
+                phase = phase + 2.0*3.14159265*test_freq/8000.0;
+                @(posedge clk); tick = 1; @(posedge clk); tick = 0;
+            end
+            @(posedge clk);
+        end
+    endtask
+
+    initial begin
+        run_block(697.0);
+        $display("mag @697Hz input (on-target)  = %0d", mag);
+
+        run_block(1633.0);
+        $display("mag @1633Hz input (off-target) = %0d", mag);
+
+        $display("If the on-target magnitude is much larger than the off-target one, PASS.");
+        $finish;
+    end
+endmodule
