@@ -1,0 +1,38 @@
+`timescale 1ns/1ps
+module tb_dtmf_freq_lut;
+    reg [3:0] key;
+    wire [15:0] low_word, high_word;
+    integer errors = 0;
+
+    dtmf_freq_lut dut (.key(key), .low_word(low_word), .high_word(high_word));
+
+    task check(input [3:0] k, input [15:0] exp_low, input [15:0] exp_high);
+        begin
+            key = k; #1;
+            if (low_word !== exp_low || high_word !== exp_high) begin
+                $display("FAIL: key=%0h expected low=%0d high=%0d, got low=%0d high=%0d",
+                          k, exp_low, exp_high, low_word, high_word);
+                errors = errors + 1;
+            end else begin
+                $display("PASS: key=%0h -> low=%0d high=%0d", k, low_word, high_word);
+            end
+        end
+    endtask
+
+    initial begin
+        check(4'h0, 16'd5710,  16'd9904);  // "1"
+        check(4'h1, 16'd5710,  16'd10945); // "2"
+        check(4'h2, 16'd5710,  16'd12100); // "3"
+        check(4'h3, 16'd5710,  16'd13378); // "A"
+        check(4'h4, 16'd6308,  16'd9904);  // "4"
+        check(4'h8, 16'd6980,  16'd9904);  // "7"
+        check(4'hC, 16'd7709,  16'd9904);  // "*"
+        check(4'hD, 16'd7709,  16'd10945); // "0"
+        check(4'hE, 16'd7709,  16'd12100); // "#"
+        check(4'hF, 16'd7709,  16'd13378); // "D"
+
+        if (errors == 0) $display("=== PASS: all dtmf_freq_lut mappings correct ===");
+        else $display("=== FAIL: %0d mismatches ===", errors);
+        $finish;
+    end
+endmodule
