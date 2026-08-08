@@ -1,0 +1,53 @@
+`timescale 1ns/1ps
+module tb_dtmf_tx;
+    reg clk = 0, rst = 1, tick = 0;
+    reg [3:0] key = 0;
+    reg key_valid = 0;
+    wire signed [7:0] audio_sample;
+
+    dtmf_tx dut (
+        .clk(clk), .rst(rst), .tick(tick),
+        .key(key), .key_valid(key_valid),
+        .audio_sample(audio_sample)
+    );
+
+    always #5 clk = ~clk;
+    integer errors = 0;
+
+    initial begin
+        rst = 1; repeat (5) @(posedge clk); rst = 0;
+
+        // key_valid = 0 -> output should stay 0
+        key = 4'h0; key_valid = 0;
+        repeat (5) begin
+            @(posedge clk); tick = 1; @(posedge clk); tick = 0;
+        end
+        if (audio_sample !== 0) begin
+            $display("FAIL: expected silent output when key_valid=0, got %0d", audio_sample);
+            errors = errors + 1;
+        end else begin
+            $display("PASS: silent when key_valid=0");
+        end
+
+        // key_valid = 1 -> output should become nonzero at some point (tones summing)
+        key_valid = 1;
+        begin : nonzero_check
+            integer saw_nonzero;
+            saw_nonzero = 0;
+            repeat (40) begin
+                @(posedge clk); tick = 1; @(posedge clk); tick = 0;
+                if (audio_sample !== 0) saw_nonzero = 1;
+            end
+            if (!saw_nonzero) begin
+                $display("FAIL: expected nonzero audio_sample while key_valid=1");
+                errors = errors + 1;
+            end else begin
+                $display("PASS: nonzero audio_sample observed while key_valid=1");
+            end
+        end
+
+        if (errors == 0) $display("=== PASS: dtmf_tx all checks passed ===");
+        else $display("=== FAIL: %0d errors ===", errors);
+        $finish;
+    end
+endmodule
