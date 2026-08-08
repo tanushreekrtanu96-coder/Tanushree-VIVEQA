@@ -1,0 +1,21 @@
+
+module dtmf_freq_lut(
+    input  wire [3:0] key,
+    output reg  [15:0] low_word,
+    output reg  [15:0] high_word
+);
+    always @* begin
+        case (key[3:2])  // row -> low frequency
+            2'd0: low_word = 16'd5710;  // 697 Hz
+            2'd1: low_word = 16'd6308;  // 770 Hz
+            2'd2: low_word = 16'd6980;  // 852 Hz
+            2'd3: low_word = 16'd7709;  // 941 Hz
+        endcase
+        case (key[1:0])  // column -> high frequency
+            2'd0: high_word = 16'd9904;  // 1209 Hz
+            2'd1: high_word = 16'd10945; // 1336 Hz
+            2'd2: high_word = 16'd12100; // 1477 Hz
+            2'd3: high_word = 16'd13378; // 1633 Hz
+        endcase
+    end
+endmodule
